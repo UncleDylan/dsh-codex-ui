@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0 (2026-11-01)
+
+This is the first release of the Dylan fork, based on upstream `1.1.47` ([MichengAI/dsh-codex-ui](https://github.com/MichengAI/dsh-codex-ui), Apache-2.0). Identity is fully separated from upstream: the npm package is now `@uncledylan/dsh-codex-ui`, and the locale namespace, storage keys, log prefixes, and internal IDs use the `uncledylan` prefix. Do not enable this fork and the upstream original at the same time — both own the same official sidebar and settings slots.
+
+- Codex-parity interface overhaul: a narrow rail keeps only high-frequency actions when the sidebar collapses, with a Codex-style `···` popover for experts/skills/connectors management; window-level actions move into the title bar; host-facing icons are redrawn as a Tabler icon family on a 20px/1.5 grid.
+- Browser-style history navigation: `←`/`→` step between sessions.
+- Activity summary card: changes, outputs, and sources from the conversation are aggregated into a Codex-spec summary card, read-only over host-rendered content.
+- Model & reasoning card: the host model/reasoning-level menu becomes a draggable segmented slider card, wired through the host model-catalog service with a menu-based fallback.
+- Image Studio panel: a dedicated image-generation mode with an inspiration-template wall, generating directly through the `dsh-image-gen` studio route.
+- Running indicator: the thinking status icon is replaced by a MatrixOrb-style dot-matrix animation; the "Full access" permission label gains Codex's brand-orange accent.
+- New conversation page: workspace question chips replace the old suggestion cards.
+- Chat scrollbar: themed overlay scrollbar for the conversation area.
+- Host compatibility widened: peer ranges accept `>=0.2.1-rc.1 <0.3.0-0` instead of pinning exact RC versions.
+
 ## 1.1.47 (2026-10-22)
 
 - Prevent interaction lockup during sidebar collapse by removing blocking `pointer-events: none` and settling state on `transitionend` with a timeout fallback (#57).
