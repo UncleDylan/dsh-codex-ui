@@ -18,7 +18,8 @@ assert.match(client, /probeService\(ctx, 'uiWorkspace'\)/, '工作区导航必�
 assert.doesNotMatch(client, /export const inject = \[[^\]]*['"]uiWorkspace['"]/, '不得把 uiWorkspace 写进 apply inject')
 assert.doesNotMatch(client, /openConversation\(ctx\.sessions/, '打开会话必须传入完整 ctx，才能 probe 官方导航')
 assert.match(client, /openConversation\(ctx, ctx\.layout/, '打开会话必须把 ctx 交给双路径导航')
-assert.match(client, /currentSessionId\(ctx\.sessions\.list.getSnapshot\(\)\)/, '草稿和预填必须用双路径当前会话')
+// 草稿存在性与预填已随 new-conversation-draft 一并移除，改由 HeroWorkspaceQuestion 接管新建页文案。
+assert.doesNotMatch(client, /new-conversation-draft/, '新建页草稿注入必须不再被客户端引用')
 assert.match(client, /forkHostSession\(ctx, sessionId\)/, '分叉必须优先官方 forkSession')
 assert.match(client, /renameHostSession\(ctx, sessionId, title\)/, '重命名必须 using/retain 后再 binding')
 assert.match(client, /archiveHostSession\(ctx, sessionId\)/, '归档必须优先官方 archiveSession')

@@ -63,7 +63,7 @@ test('桌面账号入口占用底部时不渲染自己的设置按钮', async ()
   await act(async () => { launcher?.click() })
   expect(openSettings).toHaveBeenCalled()
   expect(settingsPage()).not.toBeNull()
-  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-back')!.click() })
+  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-home')!.click() })
   expect(document.activeElement).toBe(launcher)
   const onMissing = vi.fn()
   const onSelected = vi.fn()
@@ -83,7 +83,7 @@ test('桌面账号入口占用底部时不渲染自己的设置按钮', async ()
   expect(inSettings('[aria-current="page"]')?.textContent).toBe('模型')
   expect(rendered).not.toContain('常规')
   expect(openSettings).toHaveBeenCalledTimes(1)
-  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-back')!.click() })
+  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-home')!.click() })
   await act(async () => { openSettingsRoot(container) })
   expect(inSettings('[aria-current="page"]')?.textContent).toBe('常规')
   await act(async () => { openSettingsSection(container, '第三方插件') })
@@ -136,7 +136,7 @@ test('设置 portal 使用主侧栏宽度，重新打开与折叠时保持展开
   const { trigger } = await mount({}, frame)
   expect(settingsPage()?.parentElement).toBe(document.body)
   expect(settingsPage()?.style.getPropertyValue('--dcu-sidebar-expanded-width')).toBe('316px')
-  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-back')!.click() })
+  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-home')!.click() })
   frame.style.setProperty('--dcu-sidebar-expanded-width', '360px')
   frame.style.gridTemplateColumns = '0px minmax(0px, 1fr) 0px'
   frame.setAttribute('data-sidebar-collapsed', '')
@@ -147,10 +147,10 @@ test('设置 portal 使用主侧栏宽度，重新打开与折叠时保持展开
 test('关闭后普通入口回到常规，快捷入口仍能指定分区', async () => {
   const { container, trigger } = await mount()
   await act(async () => { openSettingsSection(container, '模型'); await new Promise(resolve => setTimeout(resolve, 50)) })
-  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-back')!.click() })
+  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-home')!.click() })
   await act(async () => { trigger.click() })
   expect(inSettings('[aria-current="page"]')?.textContent).toBe('常规')
-  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-back')!.click() })
+  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-home')!.click() })
   await act(async () => { openSettingsSection(container, '模型') })
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 50)) })
   expect(inSettings('[aria-current="page"]')?.textContent).toBe('模型')
@@ -162,7 +162,7 @@ test('关闭状态的快捷入口首次渲染就是目标分区，不闪过常�
     if (name === 'settings.section' && options?.only) rendered.push(options.only)
     return null
   }) as CodexSettingsPageProps['renderSlot'] })
-  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-back')!.click() })
+  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-home')!.click() })
   rendered.length = 0
   await act(async () => { openSettingsSection(container, '模型') })
   expect(rendered).toEqual(['models'])
@@ -174,8 +174,8 @@ test('退出设置恢复焦点和被覆盖分支，保留底层会话 DOM', asyn
   document.body.append(conversation)
   const { container, trigger } = await mount()
   expect(conversation.inert).toBe(true)
-  expect(document.activeElement).toBe(inSettings('.dcu-settings-back'))
-  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-back')!.click() })
+  expect(document.activeElement).toBe(inSettings('.dcu-settings-home'))
+  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-home')!.click() })
   expect(settingsPage()).toBeNull()
   expect(conversation.inert).not.toBe(true)
   expect(conversation.value).toBe('尚未发送的内容')
@@ -286,7 +286,7 @@ test('设置打开时内联引导仍可完成，迟挂载背景不能抢走焦�
   const late = document.createElement('button')
   document.body.append(late)
   late.focus()
-  expect(document.activeElement).toBe(inSettings('.dcu-settings-back'))
+  expect(document.activeElement).toBe(inSettings('.dcu-settings-home'))
   await act(async () => { onboarding.click() })
   expect(inSettings('[data-onboarding-test]')).toBeNull()
 })
@@ -314,7 +314,8 @@ test('新设置页直接提供互不重复的社区插件图标', async () => {
 
 test('Shift+Tab 在设置内部循环，隐藏的迟挂载 dialog 不拦截 Escape', async () => {
  await mount()
- const back=inSettings<HTMLButtonElement>('.dcu-settings-back')!
+ // 常驻窄栏的 home（返回应用）现在是设置页里的第一个可聚焦控件。
+ const back=inSettings<HTMLButtonElement>('.dcu-settings-rail button')!
  const last=inSettings<HTMLButtonElement>('[data-section]')!
  back.focus()
  document.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true}))
@@ -324,6 +325,16 @@ test('Shift+Tab 在设置内部循环，隐藏的迟挂载 dialog 不拦截 Esca
  const hidden=document.createElement('div');hidden.setAttribute('role','dialog');hidden.style.display='none';document.body.append(hidden)
  await act(async()=>{document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))})
  expect(settingsPage()).toBeNull()
+})
+
+test('窄左侧栏在设置页常驻，home 键等同返回应用', async () => {
+  await mount()
+  const rail = inSettings('.dcu-settings-rail')
+  expect(rail).not.toBeNull()
+  const home = rail!.querySelector<HTMLButtonElement>('button')!
+  expect(home.getAttribute('aria-label')).toBe(zh['settings.back'])
+  await act(async () => { home.click() })
+  expect(settingsPage()).toBeNull()
 })
 
 test('官方插件开关的 body toast 不被设置隔离藏掉', async () => {
@@ -409,7 +420,7 @@ test('已有引导 portal 保留交互，设置退出不改写原始 inert 状�
  const {container}=await mount({onboarding:source([{id:'portal-step'}])})
  expect(overlay.inert).not.toBe(true)
  next.focus();expect(document.activeElement).toBe(next)
- await act(async()=>{inSettings<HTMLButtonElement>('.dcu-settings-back')!.click()})
+ await act(async()=>{inSettings<HTMLButtonElement>('.dcu-settings-home')!.click()})
  expect(background.inert).toBe(true)
  expect(background.getAttribute('data-dcu-settings-isolated')).toBe('previous')
 })
@@ -417,7 +428,7 @@ test('已有引导 portal 保留交互，设置退出不改写原始 inert 状�
 
 test('搜索弹窗尚未卸载也能从快捷入口打开设置分区', async () => {
  const {container}=await mount()
- await act(async()=>{inSettings<HTMLButtonElement>('.dcu-settings-back')!.click()})
+ await act(async()=>{inSettings<HTMLButtonElement>('.dcu-settings-home')!.click()})
  const search=document.createElement('div');search.setAttribute('role','dialog');document.body.append(search)
  await act(async()=>{openSettingsSection(container,'模型')})
  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,50))})
@@ -443,7 +454,7 @@ test('引导只保留模态区域，同包装的背景菜单仍被隔离', async
   expect(menu.hasAttribute('data-dcu-settings-isolated')).toBe(true)
   next.focus()
   expect(document.activeElement).toBe(next)
-  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-back')!.click() })
+  await act(async () => { inSettings<HTMLButtonElement>('.dcu-settings-home')!.click() })
   expect(menu.inert).not.toBe(true)
   expect(menu.hasAttribute('data-dcu-settings-isolated')).toBe(false)
 })
@@ -494,4 +505,40 @@ test('设置页挂到 document.body，不被收缩侧栏的 transform 包含块�
   expect(page?.parentElement).toBe(document.body)
   expect(container.contains(page)).toBe(false)
   expect(rail.contains(page)).toBe(false)
+})
+
+test('设置页把自身回报进浏览器式历史，顶部 ←/→ 与主界面共用一条历史', async () => {
+  const events: string[] = []
+  let view: { open: (location: { section?: string }) => void; close: () => void } | undefined
+  // useSyncExternalStore 要求快照稳定：必须返回同一个对象引用
+  const snapshot = { canBack: true, canForward: false }
+  const history = {
+    getSnapshot: () => snapshot,
+    subscribe: () => () => {},
+    back: () => { events.push('back') },
+    forward: () => { events.push('forward') },
+    dispose: () => {},
+    registerView: (handlers: NonNullable<typeof view>) => { view = handlers; events.push('register'); return () => { events.push('unregister') } },
+    enterView: (location: { kind: 'settings'; section?: string }) => { events.push(`enter:${location.section ?? ''}`) },
+    leaveView: () => { events.push('leave') },
+  }
+  await mount({ navigationHistory: history as never })
+  expect(events).toContain('register')
+  await act(async () => { inSettings<HTMLButtonElement>('[data-dcu-settings-trigger]')!.click() })
+  expect(events).toContain('enter:general')
+  const back = inSettings<HTMLButtonElement>(`[aria-label="${zh['navigation.back']}"]`)
+  expect(back).not.toBeNull()
+  expect(back!.disabled).toBe(false)
+  await act(async () => { back!.click() })
+  expect(events).toContain('back')
+  // 页内切换分区：历史里的当前条目原地更新分区
+  await act(async () => { document.querySelectorAll<HTMLButtonElement>('.dcu-settings-link')[1]!.click() })
+  expect(events.filter(event => event.startsWith('enter:')).at(-1)).toBe('enter:models')
+  // 历史导航开设置：走注册的 open 原语
+  await act(async () => { view!.open({ section: 'models' }) })
+  expect(settingsPage()).not.toBeNull()
+  // 关闭原语 = 用户关设置：页面卸载并回报 leave
+  await act(async () => { view!.close() })
+  expect(settingsPage()).toBeNull()
+  expect(events).toContain('leave')
 })

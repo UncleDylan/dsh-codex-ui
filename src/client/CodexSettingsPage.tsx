@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, Archive, Box, CircleHelp, Clock, Cpu, Link, MessageSquare, PanelRight, Search, Settings, SlidersHorizontal, Sparkles, Store, User } from 'lucide-react'
+import { Archive, Box, CircleHelp, Clock, Cpu, Link, MessageSquare, MoreHorizontal, PanelLeft, PanelRight, Search, Settings, SlidersHorizontal, Sparkles, Store, User } from 'lucide-react'
+import { RailBlocksIcon, RailHomeIcon, SidebarRail, useSidebarRail, type RailItem, type SidebarRailApi } from './SidebarRail.tsx'
+import { DesktopNavigationControls } from './DesktopNavigationControls.tsx'
+import type { NavigationHistory, SettingsLocation } from './navigation-history.ts'
 import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { ConnectionIndicator } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ConnectionState } from '@deepseek-ai/dsh-client-connection/client'
@@ -23,6 +26,8 @@ export type SettingsPageInjected = {
   /** Desktop 账号插件占用 settings.launcher 时，底部必须留给头像和登录，不能换成设置按钮。 */
   accountLauncher?: { getSnapshot: () => boolean; subscribe: (listener: () => void) => () => void }
   shortcuts?: SettingsSource<{ id: string; keys: readonly string[]; aria?: string }>
+  /** 浏览器式导航历史：设置页是栈上的一个位置，顶部 ←/→ 与主界面共用同一条历史。 */
+  navigationHistory?: NavigationHistory
 }
 export type CodexSettingsPageProps = PropsRuntime<'sidebar.settings'>
   & PropsRenderSlots<'settings.launcher' | 'settings.trigger' | 'settings.header' | 'settings.action' | 'settings.close' | 'settings.section' | 'settings.onboarding'>
@@ -48,7 +53,7 @@ function sectionIcon(id: string) {
 const noShortcuts: readonly { id: string; keys: readonly string[]; aria?: string }[] = []
 const emptyShortcuts = { subscribe: () => () => {}, getSnapshot: () => noShortcuts }
 
-export function CodexSettingsPage({ wide, sections, onboarding, connectionState, reconnect, accountLauncher, shortcuts = emptyShortcuts, useSessions, renderSlot, t }: CodexSettingsPageProps) {
+export function CodexSettingsPage({ wide, sections, onboarding, connectionState, reconnect, accountLauncher, shortcuts = emptyShortcuts, navigationHistory, useSessions, renderSlot, t }: CodexSettingsPageProps) {
   const rows = useSyncExternalStore(sections.subscribe, sections.getSnapshot)
   const steps = useSyncExternalStore(onboarding.subscribe, onboarding.getSnapshot)
   const connection = useSyncExternalStore(connectionState.subscribe, connectionState.getSnapshot)
@@ -60,6 +65,8 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
   const [open, setOpen] = useState(false)
   const [activeId, setActiveId] = useState('general')
   const [query, setQuery] = useState('')
+  // 设置页自己的折叠态：按窄栏的折叠键收起导航列，动画与主侧栏一致。
+  const [narrow, setNarrow] = useState(false)
   const [recovered, setRecovered] = useState(false)
   const previousConnection = useRef(connection)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -116,6 +123,25 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
     }
   }, [rows, t, openSection, hostAccountLauncher])
   useEffect(() => () => { exitAnimation.current?.cancel() }, [])
+  // 设置页是浏览器式历史中的一个位置：打开入栈、页内切分区原地更新、关闭退一格。
+  // ←/→ 历史导航引起的开合由 history 内部的 navigating 守卫忽略，这里只回报用户操作。
+  const viewBridge = useMemo<{ open: (location: SettingsLocation) => void; close: () => void }>(() => ({
+    open: location => { openSection(location.section ?? 'general') },
+    close: () => { close() },
+  }), [close, openSection])
+  useEffect(() => navigationHistory?.registerView(viewBridge), [navigationHistory, viewBridge])
+  // 打开/关闭各回报一次：入栈与退格（leaveView 会把整段分区浏览折叠成最后一个位置）。
+  useEffect(() => {
+    if (navigationHistory === undefined || !open) return
+    navigationHistory.enterView({ kind: 'settings', section: activeId })
+    return () => { navigationHistory.leaveView() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- activeId 由下方 effect 单独回报，避免关闭再重开的路径抖动
+  }, [navigationHistory, open])
+  // 页内切换分区 = 一次导航：分区变化压栈，←/→ 逐级退回/前进。
+  useEffect(() => {
+    if (navigationHistory === undefined || !open) return
+    navigationHistory.enterView({ kind: 'settings', section: activeId })
+  }, [navigationHistory, open, activeId])
   useLayoutEffect(() => {
     if (open && page.current !== null) page.current.style.setProperty('--dcu-sidebar-expanded-width', `${settingsSidebarWidth(document)}px`)
   }, [open])
@@ -129,7 +155,9 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
     const timer = window.setTimeout(() => { setRecovered(false) }, 3000)
     return () => { window.clearTimeout(timer) }
   }, [connection])
-  useEffect(() => {
+  // useLayoutEffect：隔离必须在设置页首帧绘制前生效——mica 等透明背景下页面是透明的，
+  // 若等 useEffect（首帧之后）才打 inert 标记，主页会先透出来一帧，观感就是「进设置闪一下」。
+  useLayoutEffect(() => {
     if (wasOpen.current && !open) {
       const previous = returnFocus.current
       const target = hostAccountLauncher
@@ -141,7 +169,7 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
     if (!open || page.current === null) return
     if (settingsElementAvailable(page.current) && settingsOverlays().length === 0) back.current?.focus()
     // 只隔离被设置页覆盖的分支，不卸载会话。设置页本身已 portal 到 body，避免收缩侧栏的 containing block 把全屏页困在窄轨。
-    const hidden = new Map<HTMLElement, { inert: boolean; marker: string | null }>()
+    const hidden = new Map<HTMLElement, { inert: boolean; marker: string | null; hostMarker: string | null }>()
     // 只为活动引导保留模态区域，不把无关菜单或其整棵包装子树一并放行。
     const guideModals = step === undefined ? [] : settingsOverlays('[role="dialog"][aria-modal="true"],[role="alertdialog"][aria-modal="true"]')
     const isolate = (element: HTMLElement) => {
@@ -156,9 +184,13 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
         for (const child of element.children) if (child instanceof HTMLElement && !/^(STYLE|SCRIPT|LINK)$/.test(child.tagName)) isolate(child)
         return
       }
-      hidden.set(element, { inert: element.inert, marker: element.getAttribute('data-dcu-settings-isolated') })
+      // 宿主主分支（#root）单独打标：只 inert 不 visibility 隐藏，设置页进出场才能与主界面交叉淡化；
+      // 其他 body 直属 portal 可能带更高 z-index 越过设置页，照旧无条件隐藏。
+      const hostBranch = element.parentElement === document.body && element.id === 'root'
+      hidden.set(element, { inert: element.inert, marker: element.getAttribute('data-dcu-settings-isolated'), hostMarker: element.getAttribute('data-dcu-settings-isolated-host') })
       element.inert = true
-      element.setAttribute('data-dcu-settings-isolated', '')
+      if (hostBranch) element.setAttribute('data-dcu-settings-isolated-host', '')
+      else element.setAttribute('data-dcu-settings-isolated', '')
     }
     let branch: HTMLElement = page.current
     while (branch.parentElement !== null) {
@@ -220,6 +252,8 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
         element.inert = previous.inert
         if (previous.marker === null) element.removeAttribute('data-dcu-settings-isolated')
         else element.setAttribute('data-dcu-settings-isolated', previous.marker)
+        if (previous.hostMarker === null) element.removeAttribute('data-dcu-settings-isolated-host')
+        else element.setAttribute('data-dcu-settings-isolated-host', previous.hostMarker)
       }
     }
   }, [open, close, step?.id, hostAccountLauncher])
@@ -228,6 +262,51 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
   const visible = orderSettingsRows(filterSettingsRows(rows, query))
   const ownTitle = active?.id === 'general' ? t('settings.general') : active?.id === 'plugin-config' ? t('settings.pluginConfig') : undefined
   const connectionIndicator = connection === 'disconnected' ? 'disconnected' : connection === 'connecting' ? 'connecting' : recovered ? 'recovered' : undefined
+  // 设置页的窄栏直接复用主侧栏那份数据；点其它键先关设置再执行原动作，和主页表现一致。
+  const sharedRail = useSidebarRail()
+  const settingsRail = useMemo<SidebarRailApi>(() => {
+    const leave = (run: () => void) => (): void => { close(); run() }
+    const plain = (label: string, icon: ReactNode): RailItem => ({ label, icon, run: close })
+    // 折叠键只折叠设置页自己的导航列（补间与主侧栏同一条曲线），不再动主界面。
+    const collapseRail: RailItem = { label: narrow ? t('sidebar.expand') : t('sidebar.collapse'), icon: <PanelLeft size={16} />, run: () => { setNarrow(value => !value) } }
+    const shell: SidebarRailApi = {
+      // home 在设置页里等同「返回应用」，但不常亮也不写 aria-current：
+      // 「当前所在」由左侧导航分区表达，窄栏保持与其它图标同等的视觉权重。
+      home: { label: t('settings.back'), icon: <RailHomeIcon />, run: close, active: false },
+      collapse: collapseRail,
+      plugins: plain(t('sidebar.plugins'), <RailBlocksIcon />),
+      // 兜底：主侧栏未挂载时浮窗没有可用条目，只剩 ··· 席位本身。
+      more: { label: t('sidebar.extensions'), items: [] },
+      panels: [],
+      settings: <div className="dcu-icon" data-active="true" aria-hidden="true"><Settings size={16} /></div>,
+      homeRef: back,
+      className: 'dcu-settings-rail',
+    }
+    if (sharedRail === undefined) return shell
+    return {
+      ...shell,
+      // 折叠图标复用主侧栏那份，保证两个界面画出同一个字形。
+      ...(sharedRail.collapse === undefined ? {} : { collapse: { ...collapseRail, icon: sharedRail.collapse.icon } }),
+      ...(sharedRail.schedule === undefined ? {} : { schedule: { ...sharedRail.schedule, active: false, run: leave(sharedRail.schedule.run) } }),
+      plugins: { ...sharedRail.plugins, run: leave(sharedRail.plugins.run) },
+      // 浮窗条目都是设置页导航：设置页里原样执行（等价切分区）；插件面板要先退出设置再切换。
+      ...(sharedRail.more === undefined ? {} : {
+        more: {
+          label: sharedRail.more.label,
+          items: sharedRail.more.items,
+          ...(sharedRail.more.panels === undefined ? {} : { panels: sharedRail.more.panels.map(panel => ({ ...panel, active: false, run: leave(panel.run) })) }),
+          pinnedIds: sharedRail.more.pinnedIds,
+          togglePin: sharedRail.more.togglePin,
+          pinLabel: sharedRail.more.pinLabel,
+          unpinLabel: sharedRail.more.unpinLabel,
+        },
+      }),
+      panels: sharedRail.panels.map(panel => ({ ...panel, active: false, run: leave(panel.run) })),
+      // 固定快捷方式同样跟到设置页窄栏：动作包一层「先关设置再执行」。
+      ...(sharedRail.pinned === undefined ? {} : { pinned: sharedRail.pinned.map(item => ({ ...item, active: false, run: leave(item.run) })) }),
+    }
+  }, [back, close, narrow, sharedRail, t])
+
   return <>
     <style>{settingsPageStyles}</style>
     {hostAccountLauncher
@@ -237,9 +316,14 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
       </button>}
     <ConnectionIndicator state={wide ? connectionIndicator : undefined} disconnectedLabel={t('settings.disconnected')} connectingLabel={t('settings.connecting')} recoveredLabel={t('settings.recovered')} reconnectActionLabel={t('settings.reconnect')} restartActionLabel={t('settings.reconnect')} onReconnect={reconnect}/>
     {createPortal(<>
-    {open && <div ref={page} className="dcu-settings-page" data-dcu-settings-page role="region" aria-label={t('settings.title')}>
+    {open && <div ref={page} className="dcu-settings-page" data-dcu-settings-page data-narrow={narrow ? '' : undefined} role="region" aria-label={t('settings.title')}>
+      {/* 与主界面共用同一对 ←/→：历史栈里设置页就是一个位置，back/forward 在两者之间往返。
+          折叠键同样入列标题栏，收放的是设置页自己的导航列。 */}
+      {navigationHistory && <DesktopNavigationControls history={navigationHistory} t={t} collapse={{ label: narrow ? t('sidebar.expand') : t('sidebar.collapse'), run: () => { setNarrow(value => !value) } }} />}
+      {/* 窄左侧栏常驻：与主侧栏共用 SidebarRail，图标、顺序与动作完全一致；
+          在设置页里点其它键会先退出设置，再执行那个键原本的动作。 */}
+      <SidebarRail api={settingsRail} />
       <nav className="dcu-settings-nav" aria-label={t('settings.title')}>
-        <button ref={back} type="button" className="dcu-settings-back" onClick={close}><ArrowLeft size={16}/>{renderSlot('settings.close', {}) ?? t('settings.back')}</button>
         {renderSlot('settings.header', {})}
         <label className="dcu-settings-search"><Search size={15} aria-hidden="true"/><input type="search" value={query} aria-label={t('settings.search')} placeholder={t('settings.search')} onChange={event => { setQuery(event.target.value) }}/></label>
         <div className="dcu-settings-scroll">

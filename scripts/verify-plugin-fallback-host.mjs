@@ -22,12 +22,12 @@ for (const name of ['package.json', 'cordis.patch.yml', 'lib', 'locale', 'assets
   await cp(path.join(repo, name), path.join(plugin, name), { recursive: true })
 }
 await cp(path.join(repo, 'scripts', 'fixtures', 'compat-panel'), path.join(profile, 'node_modules', 'dcu-compat-panel-fixture'), { recursive: true })
-const bundles = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@michengai/dsh-codex-ui', 'dcu-compat-panel-fixture']
+const bundles = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@uncledylan/dsh-codex-ui', 'dcu-compat-panel-fixture']
 const manifest = { name: 'dcu-fallback-isolated', private: true, dsh: { profile: { bundles, patchReload: 'live' } } }
 await writeFile(path.join(profile, 'package.json'), JSON.stringify(manifest, null, 2), 'utf8')
 const patchPath = path.join(profile, 'cordis.patch.yml')
 const setEnabled = async enabled => {
-  await writeFile(patchPath, `- id: locale\n  config:\n    preference: zh\n- id: codex-ui\n  disabled: ${!enabled}\n- id: michengai-codex-ui-session-title\n  disabled: ${!enabled}\n`, 'utf8')
+  await writeFile(patchPath, `- id: locale\n  config:\n    preference: zh\n- id: codex-ui\n  disabled: ${!enabled}\n- id: uncledylan-codex-ui-session-title\n  disabled: ${!enabled}\n`, 'utf8')
 }
 await setEnabled(true)
 const env = { ...process.env, DSH_HOME: home }

@@ -385,15 +385,7 @@ test('搜索和窄轨切换不会重渲染或重新挂载工作区树', async ()
   }
 })
 
-test('扩展分组默认收起，展开偏好会持久化且悬停不改变展开状态', async () => {
-  const storage = window.localStorage ?? new Map<string, string>()
-  if (window.localStorage === undefined) {
-    Object.defineProperty(window, 'localStorage', {
-      configurable: true,
-      value: { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => { storage.set(key, value) }, removeItem: (key: string) => { storage.delete(key) } },
-    })
-  }
-  window.localStorage.removeItem('dsh-codex-ui.sidebar-expansion.v1')
+test('窄栏 ··· 浮窗：开合、条目顺序、外部点击与 Escape 关闭', async () => {
   const container = document.createElement('div')
   document.body.appendChild(container)
   let root = createRoot(container)
@@ -418,44 +410,42 @@ test('扩展分组默认收起，展开偏好会持久化且悬停不改变展�
 
   try {
     await act(async () => { root.render(createElement(CodexSidebar, base as never)) })
-    const extensions = container.querySelector<HTMLButtonElement>('.dcu-extensions-toggle')
-    const extensionsGroup = container.querySelector<HTMLElement>('.dcu-extensions-group')
-    expect(extensions?.getAttribute('aria-expanded')).toBe('false')
+    const more = container.querySelector<HTMLButtonElement>('.dcu-rail button[aria-haspopup="menu"]')
+    expect(more?.getAttribute('aria-expanded')).toBe('false')
+    expect(container.querySelector('.dcu-rail-more-panel')).toBeNull()
 
-    await act(async () => { extensions?.click() })
-    expect(extensions?.getAttribute('aria-expanded')).toBe('true')
-    expect(window.localStorage.getItem('dsh-codex-ui.sidebar-expansion.v1')).toBe('{"extensions":true}')
-    expect(container.querySelector<HTMLElement>('.dcu-extension-panel')?.getAttribute('data-open')).toBe('true')
-    expect([...container.querySelectorAll<HTMLButtonElement>('.dcu-extension-items button')].every(item => item.tabIndex === 0)).toBe(true)
+    await act(async () => { more?.click() })
+    expect(more?.getAttribute('aria-expanded')).toBe('true')
+    const panel = container.querySelector<HTMLElement>('.dcu-rail-more-panel')
+    expect(panel).not.toBeNull()
+    const labels = [...panel!.querySelectorAll<HTMLButtonElement>('.dcu-rail-more-item')].map(button => button.textContent ?? '')
+    // 浮窗只留没有窄轨席位的管理入口；定时任务、插件面板、插件管理都在轨上有键。
+    expect(labels).toEqual(['sidebar.experts', 'sidebar.skills', 'sidebar.connectors'])
 
-    await act(async () => { extensionsGroup?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })) })
-    expect(extensions?.getAttribute('aria-expanded')).toBe('true')
-    await act(async () => { extensionsGroup?.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })) })
-    expect(extensions?.getAttribute('aria-expanded')).toBe('true')
+    // 外部点击关闭
+    await act(async () => { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })) })
+    expect(container.querySelector('.dcu-rail-more-panel')).toBeNull()
 
+    // Escape 关闭
+    await act(async () => { more?.click() })
+    expect(container.querySelector('.dcu-rail-more-panel')).not.toBeNull()
+    await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })) })
+    expect(container.querySelector('.dcu-rail-more-panel')).toBeNull()
+
+    // 再开一次后重挂载：浮窗是临时面板，不持久化展开态
+    await act(async () => { more?.click() })
     await act(async () => { root.unmount() })
     root = createRoot(container)
     await act(async () => { root.render(createElement(CodexSidebar, base as never)) })
-    const remountedExtensions = container.querySelector<HTMLButtonElement>('.dcu-extensions-toggle')
-    const remountedItems = container.querySelectorAll<HTMLButtonElement>('.dcu-extension-items button')
-    expect(remountedExtensions?.getAttribute('aria-expanded')).toBe('true')
-    expect([...remountedItems].every(item => item.tabIndex === 0)).toBe(true)
-
-    await act(async () => { remountedExtensions?.click() })
-    expect(remountedExtensions?.getAttribute('aria-expanded')).toBe('false')
-    expect(window.localStorage.getItem('dsh-codex-ui.sidebar-expansion.v1')).toBe('{"extensions":false}')
-    remountedExtensions?.focus()
-    expect(document.activeElement).toBe(remountedExtensions)
-    expect([...remountedItems].every(item => item.tabIndex === -1)).toBe(true)
+    expect(container.querySelector('.dcu-rail-more-panel')).toBeNull()
+    expect(container.querySelector<HTMLButtonElement>('.dcu-rail button[aria-haspopup="menu"]')?.getAttribute('aria-expanded')).toBe('false')
   } finally {
     await act(async () => { root.unmount() })
     container.remove()
-    window.localStorage.removeItem('dsh-codex-ui.sidebar-expansion.v1')
   }
 })
 
-test('插件侧栏面板收进扩展，展开菜单和窄轨都能看到，不再画到顶栏', async () => {
-  window.localStorage.removeItem('dsh-codex-ui.sidebar-expansion.v1')
+test('插件侧栏面板只落窄轨席位，··· 浮窗只留管理入口，不再画到宽侧栏菜单', async () => {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
@@ -488,33 +478,76 @@ test('插件侧栏面板收进扩展，展开菜单和窄轨都能看到，不�
         globalPanels: { getSnapshot: () => panels, subscribe: () => () => {} },
       } as never))
     })
-    const extensionItems = container.querySelector('.dcu-extension-items')
-    const extensionText = extensionItems?.textContent ?? ''
-    expect(extensionText).toContain('自动化任务')
-    expect(extensionText).toContain('任务看板')
-    expect(extensionText).toContain('上下文洞察')
-    expect(extensionText).toContain('sidebar.schedule')
-    expect(extensionText).toContain('sidebar.assistant')
-    const extensionLabels = [...container.querySelectorAll('.dcu-extension-items button')].map(button => button.textContent ?? '')
-    const assistantAt = extensionLabels.indexOf('sidebar.assistant')
-    expect(extensionLabels.slice(assistantAt + 1)).toEqual(['自动化任务', '任务看板', '上下文洞察'])
-    expect(container.querySelector('.dcu-menu [aria-label="sidebar.tasksTab"]')).toBeNull()
-    const pluginButtons = [...container.querySelectorAll<HTMLButtonElement>('.dcu-extension-items button')].filter(button => button.textContent === '任务看板' || button.textContent === '上下文洞察')
-    expect(pluginButtons).toHaveLength(2)
-    expect(pluginButtons.every(button => button.tabIndex === -1)).toBe(true)
-    const topLevel = [...container.querySelectorAll('.dcu-menu > button, .dcu-menu > .dcu-global-panel')]
-    expect(topLevel.some(button => button.textContent === '任务看板' || button.textContent === '上下文洞察')).toBe(false)
-    expect(container.querySelector('.dcu-compact-nav button[aria-label="任务看板"]')).not.toBeNull()
-    expect(container.querySelector('.dcu-compact-nav button[aria-label="上下文洞察"]')).not.toBeNull()
-    const compactLabels = [...container.querySelectorAll('.dcu-compact-nav button')].map(button => button.getAttribute('aria-label'))
-    const compactAssistant = compactLabels.indexOf('sidebar.assistant')
-    expect(compactLabels.slice(compactAssistant + 1)).toEqual(['自动化任务', '任务看板', '上下文洞察'])
-    pluginButtons[0]?.click()
+    // 宽侧栏菜单不再有扩展分组
+    expect(container.querySelector('.dcu-extensions-group')).toBeNull()
+    // 窄轨面板席位仍在（··· 下方、分隔线之后）
+    expect(container.querySelector('.dcu-rail button[aria-label="任务看板"]')).not.toBeNull()
+    expect(container.querySelector('.dcu-rail button[aria-label="上下文洞察"]')).not.toBeNull()
+    const railLabels = [...container.querySelectorAll<HTMLButtonElement>('.dcu-rail .dcu-icon')].map(button => button.getAttribute('aria-label'))
+    const boardIndex = railLabels.indexOf('任务看板')
+    expect(boardIndex).toBeGreaterThan(-1)
+    // 面板席位在 plug 上方，后面紧跟着插件与 ··· 浮窗
+    expect(railLabels.slice(boardIndex, boardIndex + 4)).toEqual(['任务看板', '上下文洞察', 'sidebar.plugins', 'sidebar.extensions'])
+    // ··· 浮窗：只有管理入口，插件面板不再重复（席位就在浮窗旁边）
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dcu-rail button[aria-haspopup="menu"]')?.click() })
+    const labels = [...container.querySelectorAll<HTMLElement>('.dcu-rail-more-panel .dcu-rail-more-item')].map(button => button.textContent ?? '')
+    expect(labels).toEqual(['sidebar.experts', 'sidebar.skills', 'sidebar.connectors'])
+    // 关掉浮窗，点窄轨面板席位 = 切换全局面板
+    await act(async () => { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })) })
+    expect(container.querySelector('.dcu-rail-more-panel')).toBeNull()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dcu-rail button[aria-label="任务看板"]')?.click() })
     expect(selectPanel).toHaveBeenCalledWith('board')
   } finally {
     await act(async () => { root.unmount() })
     container.remove()
-    window.localStorage.removeItem('dsh-codex-ui.sidebar-expansion.v1')
+  }
+})
+
+test('··· 子项行尾图钉：固定到分割线下方、再点取消收回，选择落 localStorage', async () => {
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  const root = createRoot(container)
+  const sessions = { ids: [], byId: {} }
+  const workspaces = { archivedSessionIds: [], items: [] }
+  try {
+    await act(async () => {
+      root.render(createElement(CodexSidebar, {
+        width: 240,
+        collapsed: false,
+        renderSlot: () => null,
+        t: (key: string) => key,
+        useSessions: (selector: (state: typeof sessions) => unknown): unknown => selector(sessions),
+        useWorkspaces: (selector: (state: typeof workspaces) => unknown): unknown => selector(workspaces),
+        openSession: () => {},
+        startSession: () => {},
+        toggleSidebar: () => {},
+        archiveSession: async () => {},
+        deleteSession: async () => {},
+        forkSession: async () => {},
+        renameSession: async () => {},
+        openPath: () => {},
+      } as never))
+    })
+    // 初始：轨上没有专家席位
+    expect(container.querySelector('.dcu-rail .dcu-icon[aria-label="sidebar.experts"]')).toBeNull()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dcu-rail button[aria-haspopup="menu"]')?.click() })
+    // 行尾图钉默认隐藏（visibility），但可点；点「专家」行的图钉
+    const pins = [...container.querySelectorAll<HTMLButtonElement>('.dcu-rail-more-pin')]
+    expect(pins.length).toBe(3)
+    expect(pins[0]?.getAttribute('aria-label')).toBe('sidebar.pin')
+    await act(async () => { pins[0]?.click() })
+    // 分割线下方长出专家快捷键，图钉转为已固定态，选择落 localStorage
+    expect(container.querySelector('.dcu-rail .dcu-icon[aria-label="sidebar.experts"]')).not.toBeNull()
+    expect(container.querySelector('.dcu-rail-more-pin[aria-label="sidebar.unpin"]')).not.toBeNull()
+    expect(window.localStorage.getItem('dcu.rail.pinned')).toBe('["experts"]')
+    // 再点一次 = 取消固定，席位收回
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dcu-rail-more-pin[aria-label="sidebar.unpin"]')?.click() })
+    expect(container.querySelector('.dcu-rail .dcu-icon[aria-label="sidebar.experts"]')).toBeNull()
+    expect(window.localStorage.getItem('dcu.rail.pinned')).toBe('[]')
+  } finally {
+    await act(async () => { root.unmount() })
+    container.remove()
+    window.localStorage.removeItem('dcu.rail.pinned')
   }
 })
 

@@ -23,7 +23,7 @@ type HostServices = SessionMigrationServices & {
 function requireService<T extends object>(ctx: Context, key: string, method: keyof T): T {
   const service = ctx.get(key) as unknown
   if (service === null || typeof service !== 'object' || typeof (service as Record<string, unknown>)[method as string] !== 'function') {
-    throw new Error(`michengai-codex-ui 需要宿主服务 “${key}.${String(method)}”`)
+    throw new Error(`uncledylan-codex-ui 需要宿主服务 “${key}.${String(method)}”`)
   }
   return service as T
 }

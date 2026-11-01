@@ -55,7 +55,7 @@ try {
       font: getComputedStyle(shell.querySelector('[role=option]')).fontSize,
     }))
     const geometry = await measureSuggestions()
-    if (geometry.radius !== '18px' || geometry.font !== '13px' || geometry.background !== (dark ? 'rgb(41, 41, 41)' : 'rgb(255, 255, 255)')) throw new Error('建议菜单未恢复 Codex 外观')
+    if (geometry.radius !== '16px' || geometry.font !== '13px' || geometry.background !== (dark ? 'rgb(28, 28, 28)' : 'rgb(255, 255, 255)')) throw new Error('建议菜单未恢复 Codex 外观')
     if (geometry.marked || geometry.outer !== geometry.card || geometry.inner !== geometry.outer - 10) throw new Error(`${mode}/${width}: 建议菜单没有铺满输入区`)
     await page.locator('[data-composer-card]').evaluate(card => { card.style.width = '280px' })
     const resized = await measureSuggestions()

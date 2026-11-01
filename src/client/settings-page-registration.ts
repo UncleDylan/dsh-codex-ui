@@ -10,6 +10,7 @@ import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import { DeveloperToolsRow, type DeveloperToolsHandle } from './DeveloperToolsRow.tsx'
 import { registerAfterOfficialWave } from './official-slot-shadow.ts'
 import { mirrorSlot, withSlotAliases } from './slot-mirror.tsx'
+import type { NavigationHistory } from './navigation-history.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
@@ -107,7 +108,7 @@ function accountLauncherPresence(slots: Context['slots']): { getSnapshot: () => 
   }
 }
 
-export function registerSettingsPage(ctx: Context): void {
+export function registerSettingsPage(ctx: Context, navigationHistory?: NavigationHistory): void {
   const t = ctx.locale.bind(NS)
   const declared = (name: string): boolean => {
     const spec = ctx.slots.spec as ((this: unknown, key: string) => unknown) | undefined
@@ -176,7 +177,7 @@ export function registerSettingsPage(ctx: Context): void {
   ctx.slots.inject('sidebar.settings', () => registerAfterOfficialWave(ctx.slots, 'sidebar.settings', officialSettingsReady, () => {
     return registerMirrors(ctx, shellAliases, () => ctx.slots.register({
       name: 'sidebar.settings', priority: -1, locale: NS, children: shellAliasChildren,
-      inject: () => ({ sections, onboarding, connectionState: connection.state, reconnect: () => { connection.reconnect() }, accountLauncher: accountLauncherPresence(ctx.slots), shortcuts }),
+      inject: () => ({ sections, onboarding, connectionState: connection.state, reconnect: () => { connection.reconnect() }, accountLauncher: accountLauncherPresence(ctx.slots), shortcuts, navigationHistory }),
     }, AliasedCodexSettingsPage as never))
   }, true))
   ctx.slots.inject('settings.section', () => registerAfterOfficialWave(ctx.slots, 'settings.section', () => declared('settings.general.item'), () => {

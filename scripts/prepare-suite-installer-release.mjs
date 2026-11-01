@@ -6,7 +6,7 @@ import { bilingualReleaseNotes, installerReleaseBodies } from './release-changel
 const installerPath = new URL('../packages/dsh-codex-suite-installer/package.json', import.meta.url)
 const compatibilitySuitePath = new URL('../packages/dsh-codex-suite/package.json', import.meta.url)
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
-const UI_PACKAGE = '@michengai/dsh-codex-ui'
+const UI_PACKAGE = '@uncledylan/dsh-codex-ui'
 
 function parseArgs(argv) {
   const options = { version: undefined, dryRun: false, releaseNotes: undefined }

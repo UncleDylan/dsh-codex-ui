@@ -1,6 +1,6 @@
 import { alignThemeToMessage, assembleSessionTitle, parseTypeAndTheme, resolveSessionTitleLocale, sessionTitlePrompt, shouldSkipAutoTitle, type SessionTitleLocale, type SessionTitleTarget } from './session-title.ts'
 
-export const SESSION_TITLE_PROVIDER_ID = 'michengai-codex-ui-session-title'
+export const SESSION_TITLE_PROVIDER_ID = 'uncledylan-codex-ui-session-title'
 const MAX_INPUT_BYTES = 4096
 const MAX_OUTPUT_TOKENS = 64
 const TIMEOUT_MS = 60_000
@@ -134,7 +134,7 @@ export async function generateCodexSessionTitle(llm: TitleLlm, request: TitleReq
     id: crypto.randomUUID(),
     role: 'user',
     content: [{ type: 'text', text: framed }],
-    source: { kind: 'plugin', plugin: 'michengai-codex-ui' },
+    source: { kind: 'plugin', plugin: 'uncledylan-codex-ui' },
   }]
   let chunks: AsyncIterable<unknown>
   if (typeof llm.prepareCall === 'function') {

@@ -1,4 +1,5 @@
 import { deepLinkAction, openConversation, openConversationWithDraft, selectGlobalPanel } from './session-navigation.ts'
+import { useSyncExternalStore } from 'react'
 import { createNavigationHistory } from './navigation-history.ts'
 import { createWorkspaceShortcutSource } from './workspace-shortcuts.ts'
 import { registerWorkspaceDirectoryFlow, WORKSPACE_DIRECTORY_FLOW } from './workspace-directory-flow.ts'
@@ -43,11 +44,20 @@ import { registerPluginConfigSection } from './plugin-config.ts'
 import { registerSettingsPage } from './settings-page-registration.ts'
 import { observeSlimSidebar } from './sidebar-width.ts'
 import { observeConversationHeader } from './conversation-header.ts'
+import { observeHostTablerIcons } from './host-tabler-icons.ts'
+import { observeActivityCard } from './activity-card.ts'
 import { observeOfficialTurnNavigators } from './official-turn-navigator.ts'
 import { TurnNavigator } from './TurnNavigator.tsx'
+import { RailPhotoIcon } from './SidebarRail.tsx'
+import { ImageStudioPanel } from './ImageStudioPanel.tsx'
+import { IMAGE_STUDIO_PANEL_ID, STUDIO_SIDEBAR_TAB_ID, isImageStudioAvailable } from './image-studio.ts'
 import { registerInputHistory } from './InputHistoryDock.tsx'
-import { prefillNewConversation, createDraftPresenceSource } from './new-conversation-draft.ts'
 import { observeComposerToolMenus } from './composer-tool-menus.ts'
+import { observeModelMenuCard } from './model-menu-card.ts'
+import { createModelEffortBridge } from './model-effort-bridge.ts'
+import { observeFullAccessAccent } from './full-access-accent.ts'
+import { observeRunningOrb } from './running-orb.ts'
+import { observeChatScrollbar } from './chat-scrollbar.ts'
 import { hasConnectWorkspace, hasOpenWorkspace, hasStartSession, recentWorkspaceId, workspaceBaselinesReady } from './workspace-compat.ts'
 import { HostActionError, type HostAction, UserFacingError } from './user-error.ts'
 import { finishSessionMove, requestSessionMove, sessionMoveErrorKey, SessionMoveRequestError } from './session-move.ts'
@@ -146,35 +156,64 @@ export async function startWorkspaceSession(ctx: ClientContext, workspaceId?: Wo
 /** 替换 DSH 的官方 sidebar 插槽，不修改 DSH 源码或会话数据。 */
 export function apply(ctx: ClientContext): void {
   Object.assign(globalThis, { __dcuCurrentSessionId: currentSessionId })
+  // 运行版本标记：宿主会把 client.js 快照进内存，改了 lib 不重启/重激活就不生效——
+  // 「改了没生效」时先在这里核对运行中的 bundle 是哪次构建（构建时间戳见 package.json version）。
+  document.documentElement.dataset.dcuVersion = '1.2.0'
   const widthStorage = browserStorage()
   if (widthStorage) initializeComposerWidth(widthStorage)
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'michengai-codex-ui: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'uncledylan-codex-ui: dictionaries')
   const t = ctx.locale.bind(NS)
-  ctx.effect(() => observeHeroWidthHandles(t('home.resizeInput')), 'michengai-codex-ui: hero width handles')
+  ctx.effect(() => observeHeroWidthHandles(t('home.resizeInput')), 'uncledylan-codex-ui: hero width handles')
   registerInputHistory(ctx)
-  registerSettingsPage(ctx)
+  // 宿主 layout store 的面板选中态（全局面板/会话主列谁在中间列）：侧栏据此让位高亮，
+  // 面板激活时 home 熄灭、对应面板键点亮。subscribe/getSnapshot 都是宿主侧稳定引用。
+  const usePanelInfo = <T,>(selector: (info: { activePanelId: string | null }) => T): T => {
+    const panelInfo = ctx.layout.panelInfo
+    return useSyncExternalStore(panelInfo.subscribe, () => selector(panelInfo.getSnapshot()))
+  }
+  // 导航历史要同时交给侧栏与设置页（←/→ 是跨两者的一条浏览器式历史），先于两处注册创建。
+  const navigationHistory = createNavigationHistory(ctx.sessions.list, id => openConversation(ctx, ctx.layout, id))
+  ctx.effect(() => () => { navigationHistory.dispose() }, 'uncledylan-codex-ui: navigation history')
+  registerSettingsPage(ctx, navigationHistory)
   registerPluginConfigSection(ctx)
   // Host 与客户端共用 Cordis 的服务名；此处读取的是客户端 RPC 外观，而非 HostConnectionService。
   const connectionService: unknown = ctx.get('connection')
   const connection = connectionService as HostOpenPathConnection
   const openPath = (path: string): Promise<void> => openPathInHost(connection, path)
-  ctx.effect(() => observeSlimSidebar(), 'michengai-codex-ui: slim sidebar')
-  ctx.effect(() => observeSettingsNavIcons(), 'michengai-codex-ui: settings nav icons')
-  ctx.effect(() => observeComposerToolMenus({ search: t('home.projectSearch'), empty: t('home.projectEmpty') }), 'michengai-codex-ui: composer tool menus')
-  ctx.effect(() => observeConversationHeader(), 'michengai-codex-ui: conversation header')
-  ctx.effect(() => observeOfficialTurnNavigators(), 'michengai-codex-ui: official turn navigator')
-  const newConversationDraft = createDraftPresenceSource(ctx.sessions.list, () => {
-    const id = currentSessionId(ctx.sessions.list.getSnapshot())
-    const binding = id === undefined ? undefined : ctx.sessions.binding(id as SessionId)
-    return binding === undefined ? undefined : ctx.conversation.input.for(binding.ctx).state
-  })
+  ctx.effect(() => observeSlimSidebar(), 'uncledylan-codex-ui: slim sidebar')
+  ctx.effect(() => observeSettingsNavIcons(), 'uncledylan-codex-ui: settings nav icons')
+  ctx.effect(() => observeComposerToolMenus({ search: t('home.projectSearch'), empty: t('home.projectEmpty') }), 'uncledylan-codex-ui: composer tool menus')
+  // 宿主的模型目录服务可能在插件之后才注册，所以每次读都现取，不缓存服务实例。
+  const readService = (name: string): unknown => probeService(ctx, name)
+  const modelEfforts = createModelEffortBridge(readService, () => currentSessionId(ctx.sessions.list.getSnapshot()))
+  ctx.effect(() => observeModelMenuCard({ close: t('sessions.close'), efforts: modelEfforts }), 'uncledylan-codex-ui: model menu card')
+  ctx.effect(() => observeFullAccessAccent(), 'uncledylan-codex-ui: full access accent')
+  ctx.effect(() => observeRunningOrb(), 'uncledylan-codex-ui: running orb')
+  ctx.effect(() => observeChatScrollbar(document, t('scrollbar.label')), 'uncledylan-codex-ui: chat scrollbar')
+  ctx.effect(() => observeConversationHeader(), 'uncledylan-codex-ui: conversation header')
+  ctx.effect(() => observeHostTablerIcons(), 'uncledylan-codex-ui: host tabler icons')
+  ctx.effect(() => observeOfficialTurnNavigators(), 'uncledylan-codex-ui: official turn navigator')
+  // 右上角活动摘要卡：变更/输出/来源都读宿主已渲染的 DOM；× 关闭按会话记忆。
+  ctx.effect(() => observeActivityCard({
+    labels: {
+      region: t('activity.region'),
+      changes: t('activity.changes'),
+      outputs: t('activity.outputs'),
+      sources: t('activity.sources'),
+      viewChanges: t('activity.viewChanges'),
+      viewAll: t('activity.viewAll'),
+      collapse: t('activity.collapse'),
+      close: t('activity.close'),
+      countFiles: count => t('activity.countFiles', { count }),
+      countSources: count => t('activity.countSources', { count }),
+    },
+    session: () => currentSessionId(ctx.sessions.list.getSnapshot()),
+  }), 'uncledylan-codex-ui: activity card')
   const companionSlots = createCompanionTabSource(ctx.slots)
   const globalPanels = createGlobalPanelSource(ctx.slots, ctx.locale)
   const footerActions = createFooterActionSource(ctx.slots)
-  const navigationHistory = createNavigationHistory(ctx.sessions.list, id => openConversation(ctx, ctx.layout, id))
-  ctx.effect(() => () => { navigationHistory.dispose() }, 'michengai-codex-ui: navigation history')
   const workspaceShortcuts = createWorkspaceShortcutSource(ctx.slots)
-  ctx.effect(() => () => { workspaceShortcuts.dispose() }, 'michengai-codex-ui: workspace shortcuts')
+  ctx.effect(() => () => { workspaceShortcuts.dispose() }, 'uncledylan-codex-ui: workspace shortcuts')
   registerWorkspaceDirectoryFlow(ctx)
   const ownSidebarChildren = {
     [WORKSPACE_DIRECTORY_FLOW]: { kind: 'single' as const, scope: 'root' as const },
@@ -218,17 +257,11 @@ export function apply(ctx: ClientContext): void {
     const register = (next: Partial<typeof allSidebarChildren>): () => void => {
       try {
         const unregister = ctx.slots.register({
-          name: 'sidebar', priority: -1, registrant: 'michengai-codex-ui', locale: NS,
+          name: 'sidebar', priority: -1, registrant: 'uncledylan-codex-ui', locale: NS,
           children: next,
           inject: () => ({
-            newConversationDraft,
             navigationHistory,
             workspaceShortcuts,
-            prefillNewConversation: (text: string) => {
-              const id = currentSessionId(ctx.sessions.list.getSnapshot())
-              const binding = id === undefined ? undefined : ctx.sessions.binding(id as SessionId)
-              return prefillNewConversation(binding === undefined ? undefined : ctx.conversation.input.for(binding.ctx), text)
-            },
             openSession: (sessionId: SessionId) => openConversation(ctx, ctx.layout, sessionId),
             startSession: (workspaceId?: WorkspaceId) => { startWorkspaceSession(ctx, workspaceId) },
             toggleSidebar: () => { ctx.layout.toggleSidebar() },
@@ -243,6 +276,7 @@ export function apply(ctx: ClientContext): void {
             globalPanels,
             footerActions,
             selectPanel: (id: string | null) => { selectGlobalPanel(ctx.layout, id) },
+            usePanelInfo,
           }),
         }, aliasedSidebar as typeof CodexSidebar)
         const mirrors: (() => void)[] = []
@@ -273,6 +307,43 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
     name: 'conversation.session.header.utilities', id: 'turn-navigator', order: 100, locale: NS,
   }, TurnNavigator))
+
+  // 生图模式：dsh-image-gen 在位时注册 panellist（order 0，落在 webchat -1 与 schedules 10 之间）
+  // 与 main 的 keyed 内容；插件未装则整体缺席（rail 不出现生图入口）。
+  // 原版工作台是插件注册的右侧栏页签（dsh-image-gen/studio），宿主 sidebarRight.openTab 可直接调起；
+  // 页签与服务都在场才亮入口（探测方式与宿主 chat 包调 browser 页签一致）。
+  const openStudioWorkbench = (): boolean => {
+    const tabs = readService('sidebarRightTabs') as { get?: (id: string) => unknown } | undefined
+    if (tabs?.get?.(STUDIO_SIDEBAR_TAB_ID) === undefined) return false
+    const sidebarRight = readService('sidebarRight') as { openTab?: (id: string, options?: { params?: Record<string, unknown> }) => void } | undefined
+    if (typeof sidebarRight?.openTab !== 'function') return false
+    try {
+      sidebarRight.openTab(STUDIO_SIDEBAR_TAB_ID)
+      return true
+    } catch (error) {
+      console.warn('打开图像工作台失败：', error)
+      return false
+    }
+  }
+  const workbenchAvailable = (): boolean => {
+    const tabs = readService('sidebarRightTabs') as { get?: (id: string) => unknown } | undefined
+    return tabs?.get?.(STUDIO_SIDEBAR_TAB_ID) !== undefined
+  }
+  void isImageStudioAvailable().then(available => {
+    if (!available) return
+    try {
+      ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+        name: 'sidebar.panellist', id: IMAGE_STUDIO_PANEL_ID, order: 0, locale: NS,
+        label: () => t('sidebar.imageStudio'),
+      }, RailPhotoIcon))
+      ctx.slots.inject('main', () => ctx.slots.register({
+        name: 'main', key: IMAGE_STUDIO_PANEL_ID, locale: NS,
+        inject: () => ({ openStudioWorkbench, workbenchAvailable }),
+      }, ImageStudioPanel))
+    } catch (error) {
+      console.warn('生图模式注册失败：', error)
+    }
+  })
 
   const forkSession = async (sessionId: SessionId): Promise<void> => {
     await runHostAction('fork', () => forkHostSession(ctx, sessionId))
@@ -396,7 +467,7 @@ export function apply(ctx: ClientContext): void {
     }
     openDeepLink()
     return ctx.sessions.list.subscribe(openDeepLink)
-  }, 'michengai-codex-ui: session deep link')
+  }, 'uncledylan-codex-ui: session deep link')
 
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section', id: 'connectors', order: 30, label: () => t('sidebar.connectors'),

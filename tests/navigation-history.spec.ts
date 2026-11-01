@@ -53,6 +53,77 @@ test('returning to the same session across a deleted visit still moves the curso
   f.history.dispose()
 })
 
+test('settings page participates in browser-style history', () => {
+  const f = fixture()
+  const opened: (string | undefined)[] = []
+  let settingsOpen = false
+  const unregister = f.history.registerView({
+    open: location => { opened.push(location.section); settingsOpen = true },
+    close: () => { settingsOpen = false },
+  })
+  f.select('b')
+  // 用户打开设置（页面回报）→ 入栈
+  f.history.enterView({ kind: 'settings', section: 'general' })
+  expect(settingsOpen).toBe(false)
+  expect(f.history.getSnapshot()).toEqual({ canBack: true, canForward: false })
+  // 页内切换分区 = 一次导航：分区条目压栈
+  f.history.enterView({ kind: 'settings', section: 'models' })
+  // 关闭设置（页面回报）→ 游标退回会话，设置条目保留为前进目标
+  f.history.leaveView()
+  expect(f.history.getSnapshot()).toEqual({ canBack: true, canForward: true })
+  // → 重返设置页，并恢复离开时的分区
+  f.history.forward()
+  expect(settingsOpen).toBe(true)
+  expect(opened.at(-1)).toBe('models')
+  // ← 回到上一个会话：设置页关闭原语被调用
+  f.history.back()
+  expect(settingsOpen).toBe(false)
+  expect(f.open).toHaveBeenLastCalledWith('b')
+  unregister()
+  f.history.dispose()
+})
+
+test('view echoes during history navigation do not duplicate entries', () => {
+  const f = fixture()
+  let settingsOpen = false
+  // 与真实设置页一致：open/close 原语里会顺手 enter/leave 回报
+  f.history.registerView({
+    open: location => { settingsOpen = true; f.history.enterView(location) },
+    close: () => { settingsOpen = false; f.history.leaveView() },
+  })
+  f.select('b')
+  f.history.enterView({ kind: 'settings', section: 'general' })
+  f.history.back()
+  expect(f.open).toHaveBeenLastCalledWith('b')
+  // → 重返设置页：open 原语里的 enterView 被守卫忽略，不得再压栈
+  f.history.forward()
+  expect(settingsOpen).toBe(true)
+  expect(f.history.getSnapshot()).toEqual({ canBack: true, canForward: false })
+  f.history.back()
+  expect(f.open).toHaveBeenLastCalledWith('b')
+  f.history.dispose()
+})
+
+test('section switches push history so back moves between sections', () => {
+  const f = fixture()
+  const opened: (string | undefined)[] = []
+  f.history.registerView({
+    open: location => { opened.push(location.section) },
+    close: () => {},
+  })
+  f.select('b')
+  f.history.enterView({ kind: 'settings', section: 'general' })
+  f.history.enterView({ kind: 'settings', section: 'models' })
+  // 设置页内 ←：退到上一个分区，不经过会话打开
+  f.history.back()
+  expect(opened.at(-1)).toBe('general')
+  expect(f.open).not.toHaveBeenCalled()
+  // 再 ←：离开设置页回到会话
+  f.history.back()
+  expect(f.open).toHaveBeenLastCalledWith('b')
+  f.history.dispose()
+})
+
 test('caption arrows update enabled state and navigate without sidebar actions', async () => {
   const f = fixture()
   const container = document.createElement('div')

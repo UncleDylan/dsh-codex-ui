@@ -12,7 +12,7 @@ const suiteManifest = JSON.parse(readFileSync(new URL('./package.json', import.m
 /** 保留旧聚合包的成员顺序，新成员放在宠物之前。 */
 export const MEMBER_PACKAGES = [
   '@michengai/dsh-archive-manager',
-  '@michengai/dsh-codex-ui',
+  '@uncledylan/dsh-codex-ui',
   '@michengai/dsh-skills-manager',
   '@michengai/dsh-agency-agents',
   '@michengai/dsh-im-connect',
@@ -27,7 +27,7 @@ export const MEMBER_PACKAGES = [
 export function memberSpecs(manifest = suiteManifest) {
   return MEMBER_PACKAGES.map((packageName) => {
     let version = manifest.dshCodexSuite?.members?.[packageName] ?? manifest.dependencies?.[packageName]
-    if (version?.startsWith('workspace:') === true && packageName === '@michengai/dsh-codex-ui') {
+    if (version?.startsWith('workspace:') === true && packageName === '@uncledylan/dsh-codex-ui') {
       version = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version
     }
     if (typeof version !== 'string' || version === '' || version.startsWith('workspace:')) {

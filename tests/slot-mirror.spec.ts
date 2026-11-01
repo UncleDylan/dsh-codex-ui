@@ -51,10 +51,10 @@ const single = { kind: 'single', scope: 'root' } as const
 test('slot alias wrapper keeps the identity IM uses to recognize Codex UI', async () => {
   const { withSlotAliases } = await api()
   function CodexSidebar() { return null }
-  CodexSidebar.displayName = 'michengai-codex-ui'
+  CodexSidebar.displayName = 'uncledylan-codex-ui'
   const wrapped = withSlotAliases(CodexSidebar, { 'sidebar.workspaces': 'sidebar.codex.workspaces' })
   const name = wrapped.displayName ?? wrapped.name
-  expect(/dsh-codex-ui|michengai-codex-ui|michengai\.codexUi|codex-ui/i.test(name)).toBe(true)
+  expect(/dsh-codex-ui|uncledylan-codex-ui|michengai\.codexUi|codex-ui/i.test(name)).toBe(true)
 })
 
 test('real renderer denies undeclared shared children even though the registry contains them', async () => {

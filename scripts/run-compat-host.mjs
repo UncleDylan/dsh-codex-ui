@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 const cli = process.env.DCU_DSH_BIN
 const tarball = process.env.DCU_E2E_TARBALL
 const version = process.env.DCU_E2E_VERSION
-if (!cli || !tarball || !['0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-rc.1', '0.2.1-rc.2'].includes(version)) throw new Error('需要 DCU_DSH_BIN、DCU_E2E_TARBALL 和精确的 DCU_E2E_VERSION')
+if (!cli || !tarball || !['0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-rc.1', '0.2.1-rc.2', '0.2.1-rc.5'].includes(version)) throw new Error('需要 DCU_DSH_BIN、DCU_E2E_TARBALL 和精确的 DCU_E2E_VERSION')
 const repo = fileURLToPath(new URL('../', import.meta.url))
 const resolve = createRequire(cli)
 for (const name of ['dsh', 'dsh-base', 'dsh-web-app', 'dsh-client-ui-layout', 'dsh-client-ui-conversation', 'dsh-client-ui-sidebar', 'dsh-client-ui-session', 'dsh-client-ui-settings']) {
@@ -31,14 +31,14 @@ function run(args, extraEnv = env) {
 }
 console.log(`准备 ${version} 隔离宿主：${root}`)
 await run([cli, 'plugin', '--profile', 'web', 'add', path.resolve(tarball), path.join(repo, 'scripts', 'fixtures', 'compat-panel')])
-const installed = await realpath(path.join(env.DSH_HOME, 'profiles', 'web', 'node_modules', '@michengai', 'dsh-codex-ui'))
+const installed = await realpath(path.join(env.DSH_HOME, 'profiles', 'web', 'node_modules', '@uncledylan', 'dsh-codex-ui'))
 const relativeInstall = path.relative(await realpath(root), installed)
 assert.ok(relativeInstall !== '' && relativeInstall !== '..' && !relativeInstall.startsWith(`..${path.sep}`) && !path.isAbsolute(relativeInstall), '必须测试已安装的 tarball，不能链接回开发仓库')
 const patch = await readFile(path.join(installed, 'cordis.patch.yml'), 'utf8')
 assert.match(patch, /id: session-title-llm[\s\S]*disabled: true/, '安装包必须停用官方 session-title-llm')
-assert.match(patch, /id: michengai-codex-ui-session-title\s+name: '@michengai\/dsh-codex-ui\/session-title'/, '安装包必须单独挂上 Codex UI first-prompt 标题插件')
+assert.match(patch, /id: uncledylan-codex-ui-session-title\s+name: '@uncledylan\/dsh-codex-ui\/session-title'/, '安装包必须单独挂上 Codex UI first-prompt 标题插件')
 const titlePlugin = await readFile(path.join(installed, 'lib/session-title-plugin.mjs'), 'utf8')
-assert.match(titlePlugin, /michengai-codex-ui-session-title/, '安装包必须注册 Codex UI first-prompt 标题提供方')
+assert.match(titlePlugin, /uncledylan-codex-ui-session-title/, '安装包必须注册 Codex UI first-prompt 标题提供方')
 const server = spawn(process.execPath, [cli, 'web', '--no-open', '--port', '0'], { cwd: env.DCU_E2E_WORKSPACE, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
 try {
   const url = await new Promise((resolve, reject) => {

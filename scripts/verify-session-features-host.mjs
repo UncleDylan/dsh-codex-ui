@@ -53,7 +53,7 @@ try {
   checks.push('隔离宿主已有可移动会话，并创建了目标项目')
 
   await session.locator('button.dcu-wb-context-anchor').evaluate(button => button.click())
-  const moveLabel = await page.evaluate(() => window.__dcuE2E.ctx.locale.bind('michengai.codexUi')('sessions.moveWorkspace'))
+  const moveLabel = await page.evaluate(() => window.__dcuE2E.ctx.locale.bind('uncledylan.codexUi')('sessions.moveWorkspace'))
   const moveItem = page.getByRole('menuitem', { name: moveLabel, exact: true })
   await moveItem.waitFor()
   assert.equal(await moveItem.getAttribute('aria-disabled'), null, '有第二个项目时移动入口必须可用')

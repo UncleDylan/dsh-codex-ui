@@ -21,7 +21,7 @@ const installerManifest = JSON.parse(readFileSync(new URL('../packages/dsh-codex
 const rootManifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
 assert.deepEqual(MEMBER_PACKAGES, [
   '@michengai/dsh-archive-manager',
-  '@michengai/dsh-codex-ui',
+  '@uncledylan/dsh-codex-ui',
   '@michengai/dsh-skills-manager',
   '@michengai/dsh-agency-agents',
   '@michengai/dsh-im-connect',
@@ -84,7 +84,7 @@ assert.deepEqual(
     BASE_BUNDLE,
     'third-party-before',
     SUITE_PACKAGE,
-    '@michengai/dsh-codex-ui',
+    '@uncledylan/dsh-codex-ui',
     'third-party-after',
     WEB_BUNDLE,
     'third-party-before',
@@ -100,7 +100,7 @@ assert.deepEqual(
     'before-suite',
     SUITE_PACKAGE,
     'after-suite',
-    '@michengai/dsh-codex-ui',
+    '@uncledylan/dsh-codex-ui',
     'tail',
   ]),
   [BASE_BUNDLE, 'before-web', WEB_BUNDLE, 'before-suite', ...MEMBER_PACKAGES, 'after-suite', 'tail'],

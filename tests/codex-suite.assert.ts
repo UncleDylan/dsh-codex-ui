@@ -29,7 +29,7 @@ const readme = readFileSync(readmePath, 'utf8')
 const rootReadme = readFileSync(rootReadmePath, 'utf8')
 const rootReadmeZh = readFileSync(rootReadmeZhPath, 'utf8')
 const packages = [
-  '@michengai/dsh-codex-ui',
+  '@uncledylan/dsh-codex-ui',
   '@michengai/dsh-agency-agents',
   '@michengai/dsh-skills-manager',
   '@michengai/dsh-archive-manager',
@@ -38,7 +38,7 @@ const packages = [
 ]
 const expectedVersions: Record<string, string> = {
   ...installer.dshCodexSuite?.members,
-  '@michengai/dsh-codex-ui': 'workspace:*',
+  '@uncledylan/dsh-codex-ui': 'workspace:*',
 }
 
 assert.equal(suite.name, '@michengai/dsh-codex-suite', '聚合包名必须稳定')
@@ -46,7 +46,7 @@ assert.equal(suite.private, true, '旧聚合包必须阻止后续误发布')
 assert.equal(suite.files?.includes('installer.mjs'), false, '兼容聚合包不应携带会触发整棵依赖解析的 npx 安装器')
 assert.equal(suite.dsh?.bundle?.patch, './cordis.patch.yml', 'DSH 必须读取聚合 patch')
 assert.doesNotMatch(patch, /id: session-title-llm\s+disabled: true/, '聚合 patch 不得静态停用官方会话标题 LLM')
-assert.match(patch, /id: michengai-codex-ui-session-title\s+name: '@michengai\/dsh-codex-ui\/session-title'/, '聚合 patch 必须单独挂上 Codex UI 会话标题插件')
+assert.match(patch, /id: uncledylan-codex-ui-session-title\s+name: '@uncledylan\/dsh-codex-ui\/session-title'/, '聚合 patch 必须单独挂上 Codex UI 会话标题插件')
 assert.doesNotMatch(patch, /id: session-title\s*\n\s+disabled: true/, '聚合 patch 不得关闭会话标题服务')
 for (const packageName of packages) {
   assert.notEqual(suite.dependencies?.[packageName], undefined, `聚合包必须安装 ${packageName}`)

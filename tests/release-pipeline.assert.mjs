@@ -56,7 +56,7 @@ try {
   const notes = readFileSync(join(directory, 'prepared.md'), 'utf8')
   assert.match(notes, /## 中文说明/)
   assert.match(notes, /## English/)
-  assert.match(notes, /@michengai\/dsh-codex-ui@1\.2\.3/)
+  assert.match(notes, /@uncledylan\/dsh-codex-ui@1\.2\.3/)
   for (const file of ['CHANGELOG.md', 'CHANGELOG.zh-CN.md']) {
     assert.equal(readFileSync(join(directory, file), 'utf8'), fixture, '组合包发布不得写入 UI 更新日志')
   }

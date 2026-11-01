@@ -1,12 +1,13 @@
 export const COMPOSER_MIN_WIDTH = 640
+/** 对齐 Codex --thread-content-max-width:48rem；仅作为初始偏好，用户拖拽后不再覆盖。 */
+export const COMPOSER_DEFAULT_WIDTH = 768
 export const COMPOSER_EDGE_BUDGET = 176
-/** 按用户要求用最窄宽度替代宿主自适应默认；已有有效偏好不重置，拖拽起点沿用宿主存储。 */
 export function initializeComposerWidth(storage: Pick<Storage, 'getItem' | 'setItem'>): void {
   const key = 'dsh.conversation.contentWidth'
   try {
     const saved = Number(storage.getItem(key))
-    if (Number.isFinite(saved) && saved > 0) return
-    storage.setItem(key, String(COMPOSER_MIN_WIDTH))
+    if (Number.isFinite(saved) && saved > 0 && saved !== COMPOSER_MIN_WIDTH) return
+    storage.setItem(key, String(COMPOSER_DEFAULT_WIDTH))
   } catch (error) {
     console.warn('[codex-ui] 无法初始化输入区宽度，将使用宿主默认值。', error)
   }

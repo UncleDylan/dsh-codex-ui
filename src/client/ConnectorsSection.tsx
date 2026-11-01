@@ -25,8 +25,8 @@ const stylesheet = `
 .dcu-connectors{color:var(--dsw-alias-label-primary)}.dcu-connectors h2{margin:0;font-size:18px}.dcu-connectors p{margin:6px 0 18px;color:var(--dsw-alias-label-secondary);font-size:12px}.dcu-connector-frame{display:block;width:100%;height:clamp(420px,calc(100vh - 160px),700px);border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color-scheme:light dark}.dcu-connector-list{overflow:hidden;border:1px solid var(--dsw-alias-border-l2);border-radius:9px}.dcu-connector{padding:12px;border-bottom:1px solid var(--dsw-alias-border-l2)}.dcu-connector:last-child{border-bottom:0}.dcu-connector-head{display:flex;align-items:center;gap:8px;font-weight:650}.dcu-connector-meta{margin:3px 0 8px;color:var(--dsw-alias-label-tertiary);font-size:11px}.dcu-connector-tool{padding:5px 0 0 24px;color:var(--dsw-alias-label-secondary);font-size:12px}.dcu-connector-tool span{display:block;margin-top:1px;color:var(--dsw-alias-label-tertiary);font-size:11px}.dcu-connector-empty{padding:20px 8px;color:var(--dsw-alias-label-secondary);text-align:center}
 `
 
-const frameLightTheme = `:root{color-scheme:light;--bg:#fff;--card:#fafafa;--line:#e5e5e5;--text:#303030;--text-2:#737373;--muted:#767676;--accent:#303030;--accent-hover:#171717;--accent-light:#e9e9e9;--dcu-action:#303030;--dcu-action-hover:#171717;--dcu-on-action:#fff;--ok:#059669;--ok-bg:#ecfdf5;--warn:#d97706;--warn-bg:#fffbeb;--bad:#dc2626;--bad-bg:#fef2f2;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);--shadow-lg:0 10px 25px rgba(0,0,0,.1)}`
-const frameDarkTheme = `:root{color-scheme:dark;--bg:#181818;--card:#232323;--line:#333;--text:#dedede;--text-2:#a1a1a1;--muted:#929292;--accent:#dedede;--accent-hover:#fff;--accent-light:#303332;--dcu-action:#383838;--dcu-action-hover:#454545;--dcu-on-action:#eee;--ok:#34d399;--ok-bg:#0d3027;--warn:#fbbf24;--warn-bg:#35280b;--bad:#f87171;--bad-bg:#3b171b;--shadow:0 1px 3px rgba(0,0,0,.35);--shadow-lg:0 16px 35px rgba(0,0,0,.45)}`
+const frameLightTheme = `:root{color-scheme:light;--bg:#fff;--card:#f9f9f9;--line:rgba(13,13,13,.08);--text:#181818;--text-2:#5d5d5d;--muted:#8f8f8f;--accent:#181818;--accent-hover:#000;--accent-light:#f0f0f0;--dcu-action:#181818;--dcu-action-hover:#000;--dcu-on-action:#fff;--ok:#059669;--ok-bg:#ecfdf5;--warn:#d97706;--warn-bg:#fffbeb;--bad:#dc2626;--bad-bg:#fef2f2;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);--shadow-lg:0 10px 25px rgba(0,0,0,.1)}`
+const frameDarkTheme = `:root{color-scheme:dark;--bg:#0d0d0d;--card:#181818;--line:#212121;--text:#ededed;--text-2:#afafaf;--muted:#8f8f8f;--accent:#ededed;--accent-hover:#fff;--accent-light:#212121;--dcu-action:#2f2f2f;--dcu-action-hover:#3a3a3a;--dcu-on-action:#ededed;--ok:#34d399;--ok-bg:#0d3027;--warn:#fbbf24;--warn-bg:#35280b;--bad:#f87171;--bad-bg:#3b171b;--shadow:0 1px 3px rgba(0,0,0,.35);--shadow-lg:0 16px 35px rgba(0,0,0,.45)}`
 
 // 仅注入本设置页承载的连接器 iframe；推荐边框不是告警，状态色仍由原页保留。
 const frameSurfaceTheme = `
@@ -55,10 +55,10 @@ function isPromptRequest(value: unknown): value is { type: typeof PROMPT_REQUEST
 function syncFrameTheme(frame: HTMLIFrameElement | null): void {
   const doc = frame?.contentDocument
   if (doc === null || doc === undefined) return
-  let style = doc.head.querySelector<HTMLStyleElement>('style[data-michengai-host-theme]')
+  let style = doc.head.querySelector<HTMLStyleElement>('style[data-uncledylan-host-theme]')
   if (style === null) {
     style = doc.createElement('style')
-    style.dataset.michengaiHostTheme = 'true'
+    style.dataset.uncledylanHostTheme = 'true'
     doc.head.append(style)
   }
   style.textContent = (document.body.hasAttribute('data-ds-dark-theme') ? frameDarkTheme : frameLightTheme) + frameSurfaceTheme

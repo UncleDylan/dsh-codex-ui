@@ -21,7 +21,7 @@ export function registerAfterOfficialWave(slots: object, slot: string, officialR
     if (timer !== undefined) clearTimeout(timer)
     off()
     if (timedOut) {
-      console.warn(`[michengai-codex-ui] 等待官方 '${slot}' 注册超时；仅注册自有槽，保留官方共享声明。`)
+      console.warn(`[uncledylan-codex-ui] 等待官方 '${slot}' 注册超时；仅注册自有槽，保留官方共享声明。`)
     }
     remove = register(timedOut)
   }

@@ -6,7 +6,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MichengAI/dsh-codex-ui.git"
+    "url": "git+https://github.com/UncleDylan/dsh-codex-ui.git"
   },
   "engines": {
     "node": ">=22.19.0"
@@ -27,7 +27,7 @@
   "dshCodexSuite": {
     "members": {
       "@michengai/dsh-archive-manager": "1.1.7",
-      "@michengai/dsh-codex-ui": "1.1.46",
+      "@uncledylan/dsh-codex-ui": "1.2.0",
       "@michengai/dsh-skills-manager": "1.2.11",
       "@michengai/dsh-agency-agents": "1.2.10",
       "@michengai/dsh-im-connect": "1.0.12",

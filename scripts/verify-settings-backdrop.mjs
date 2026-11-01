@@ -19,11 +19,21 @@ try {
     portal.style.cssText = 'position:fixed;inset:0;z-index:99999;visibility:visible'
     portal.innerHTML = '<span style="visibility:visible">外部浮层</span>'
     document.body.append(portal)
+    const hostBranch = document.createElement('div')
+    hostBranch.id = 'host-branch'
+    hostBranch.setAttribute('data-dcu-settings-isolated-host', '')
+    hostBranch.style.cssText = 'visibility:visible'
+    hostBranch.innerHTML = '<span id="host-content" style="visibility:visible">主界面</span>'
+    document.body.append(hostBranch)
   })
   assert.equal(await page.locator('#external-portal span').isVisible(), false, '设置页隔离的 body portal 后代不能穿透')
+  // 宿主主分支只 inert 不隐藏：设置页进出场要与主界面交叉淡化，非 mica 下必须保持可见。
+  assert.equal(await page.locator('#host-content').isVisible(), false, 'mica 下宿主主分支必须真的隐藏')
   await page.evaluate(() => { delete document.documentElement.dataset.dshNativeBackdrop })
   assert.equal(await page.locator('#external-portal span').isVisible(), false, '普通主题同样隔离外部 portal')
+  assert.equal(await page.locator('#host-content').isVisible(), true, '普通主题下宿主主分支必须保持可见，交叉淡化才不会闪白')
   await page.evaluate(() => { document.documentElement.dataset.dshNativeBackdrop = 'mica' })
+  assert.equal(await page.locator('#host-content').isVisible(), false, '恢复 mica 后宿主主分支重新隐藏')
   await page.locator('#external-portal').evaluate(node => { node.removeAttribute('data-dcu-settings-isolated'); node.inert = false })
   assert.equal(await page.locator('#external-portal span').isVisible(), true, '取消隔离后恢复 portal')
   await page.evaluate(() => { document.querySelector('.dcu-settings-page').remove(); document.querySelector('#sessions').inert = false })

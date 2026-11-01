@@ -1,16 +1,21 @@
 import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { initializeComposerWidth, COMPOSER_MIN_WIDTH, COMPOSER_EDGE_BUDGET } from '../src/client/composer-width.ts'
+import { initializeComposerWidth, COMPOSER_MIN_WIDTH, COMPOSER_DEFAULT_WIDTH, COMPOSER_EDGE_BUDGET } from '../src/client/composer-width.ts'
 
 describe('输入区初始宽度', () => {
   for (const initial of [null, '', 'invalid', '-1']) {
-    it(`为未设置或无效偏好 ${initial} 初始化最窄宽度`, () => {
+    it(`为未设置或无效偏好 ${initial} 初始化 Codex 内容列宽度`, () => {
       let saved = initial
       initializeComposerWidth({ getItem: () => saved, setItem: (_, value) => { saved = value } })
-      expect(saved).toBe('640')
+      expect(saved).toBe(String(COMPOSER_DEFAULT_WIDTH))
     })
   }
+  it('把旧版最窄默认值迁移到 Codex 内容列宽度', () => {
+    let saved: string | null = String(COMPOSER_MIN_WIDTH)
+    initializeComposerWidth({ getItem: () => saved, setItem: (_, value) => { saved = value } })
+    expect(saved).toBe(String(COMPOSER_DEFAULT_WIDTH))
+  })
   it('保留用户拖拽后的宽度，重复启动也不重置', () => {
     let saved = '860'
     const storage = { getItem: () => saved, setItem: (_: string, value: string) => { saved = value } }

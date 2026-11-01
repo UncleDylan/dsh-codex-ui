@@ -1,4 +1,4 @@
-export const HISTORY_KEY = 'michengai.codex-ui.input-history.v1'
+export const HISTORY_KEY = 'uncledylan.codex-ui.input-history.v1'
 const LEGACY_HISTORY_KEY = 'michengai.btw.history.v1'
 const MAX_STORAGE_LENGTH = 1_000_000
 type StorageFace = Pick<Storage, 'getItem' | 'setItem'>

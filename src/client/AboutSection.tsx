@@ -228,7 +228,7 @@ export function AboutSection({ t }: { t: TranslateNS<typeof NS> }) {
               size="sm"
               icon={<GithubMark16 />}
               aria-label={t('about.viewProject')}
-              onClick={() => { openExternal('https://github.com/MichengAI/dsh-codex-ui') }}
+              onClick={() => { openExternal('https://github.com/UncleDylan/dsh-codex-ui') }}
             >
               {t('about.viewProject')}
             </PrimitiveButton>
@@ -237,7 +237,7 @@ export function AboutSection({ t }: { t: TranslateNS<typeof NS> }) {
               size="sm"
               icon={<IconListPenOutlineMedium size={14} />}
               aria-label={t('about.feedback')}
-              onClick={() => { openExternal('https://github.com/MichengAI/dsh-codex-ui/issues') }}
+              onClick={() => { openExternal('https://github.com/UncleDylan/dsh-codex-ui/issues') }}
             >
               {t('about.feedback')}
             </PrimitiveButton>

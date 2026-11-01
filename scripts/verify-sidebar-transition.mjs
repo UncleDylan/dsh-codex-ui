@@ -57,11 +57,11 @@ try {
     await startup.close()
     assert.equal(startupResult.cold.capped, false, `${initial} 首次加载触发监听循环`)
     assert.equal(startupResult.initialized, true, `${initial} 恢复展开后应完成初始化`)
-    assert.equal(startupResult.width, 240)
+    assert.equal(startupResult.width, 340)
     assert.equal(startupResult.idleCallbacks, 0, `${initial} 稳定后不应继续触发监听`)
   }
   // 右栏按下时宿主先标记 dragging，移动后才改网格；两步之间标题也必须保持原位。
-  for (const clearance of [160, 84]) {
+  for (const clearance of [160, 104]) {
     const dragPage = await browser.newPage()
     const headerStyle = readFileSync('src/client/conversation-header.ts', 'utf8').match(/export const CONVERSATION_HEADER_STYLE = `([\s\S]*?)`/)[1]
     await dragPage.setContent(`<style>body{margin:0}#frame{display:grid;--dsh-frame-leading-clearance:${clearance}px}${headerStyle}</style><div id="frame" data-sidebar-collapsed style="grid-template-columns:0px minmax(400px, 1fr) minmax(0px, 480px)"><aside></aside><main><header><span class="crumbCurrent">标题</span></header></main><aside></aside></div>`)
@@ -90,13 +90,13 @@ try {
     await dragPage.close()
     for (const [state, sample] of Object.entries(samples)) {
       assert.equal(sample.left, clearance, `${clearance}px 安全区：右栏 ${state} 时标题不得跳动`)
-      assert.equal(sample.rail, state === 'moved' ? '0px' : '56px', `${state} 必须按实际网格同步窄轨宽度`)
+      assert.equal(sample.rail, state === 'moved' ? '0px' : '48px', `${state} 必须按实际网格同步窄轨宽度`)
     }
     assert.equal(samples.pressed.grid, samples.before.grid, '按下右栏分隔条不得改写网格')
     assert.equal(samples.moved.grid, '0px minmax(400px, 1fr) minmax(0px, 490px)', '拖拽中不得覆盖宿主网格')
   }
   const page = await browser.newPage()
-  await page.setContent('<style>*{box-sizing:border-box}</style><div id="frame" style="display:grid;height:700px;grid-template-columns:320px minmax(0px, 1fr) 0px"><div style="min-width:0;overflow:hidden"><aside class="dcu-root"><div class="dcu-expanded-shell"><nav class="dcu-menu"><button>扩展管理专家技能插件连接器</button></nav></div><div class="dcu-foot">设置与账户余额</div></aside></div><main></main><div></div><div data-side="sidebar"></div></div>')
+  await page.setContent('<style>*{box-sizing:border-box}</style><div id="frame" style="display:grid;height:700px;grid-template-columns:320px minmax(0px, 1fr) 0px"><div style="min-width:0;overflow:hidden"><aside class="dcu-root"><div class="dcu-expanded-shell"><nav class="dcu-menu"><button>扩展管理专家技能插件连接器</button></nav><div class="dcu-foot">设置与账户余额</div></div></aside></div><main></main><div></div><div data-side="sidebar"></div></div>')
   await page.addStyleTag({ content: stylesheet })
   await page.addScriptTag({ content: implementation })
   const result = await page.evaluate(async () => {
@@ -161,10 +161,10 @@ try {
   assert.equal(result.restored.width, '', '卸载必须清理插件列宽变量')
   for (const sample of result.samples) {
     assert.equal(sample.shell, sample.expected, `动画中菜单被压窄：${JSON.stringify(sample)}`)
-    assert.equal(sample.foot, sample.expected, `动画中页脚被压窄：${JSON.stringify(sample)}`)
+    assert.ok(Math.abs(sample.foot - sample.expected) < 0.1, `动画中页脚被压窄：${JSON.stringify(sample)}`)
   }
   for (const { start, target, values, duration } of result.motion) {
-    assert.equal(duration, '0.5s', '侧栏宽度必须使用明确的 0.5 秒过渡')
+    assert.ok(duration.split(', ').every(value => value === '0.3s'), `侧栏宽度必须使用明确的 0.3 秒过渡，实际 ${duration}`)
     assert.ok(values.filter(value => value > Math.min(start, target) + 1 && value < Math.max(start, target) - 1).length >= 3, '展开和收起都必须有多个中间帧')
     assert.ok(Math.abs(values.at(-1) - target) < 0.1, '动画结束必须到达目标宽度')
   }

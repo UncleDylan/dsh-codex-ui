@@ -20,15 +20,44 @@ try {
   </body></html>`)
 
   const top = () => page.locator('.dcu-settings-back').evaluate(element => element.getBoundingClientRect().top)
-  assert.equal(await top(), 56, 'macOS 普通窗口的返回按钮必须低于原生标题栏')
+  // 返回按钮 = 标题栏带（48px）+ 导航列自身 18px 顶距；带由 grid 第一行铺出，内容整体下移。
+  assert.equal(await top(), 66, 'macOS 普通窗口的返回按钮必须低于原生标题栏')
+  const band = await page.locator('.dcu-settings-page').evaluate(element => {
+    const style = getComputedStyle(element, '::before')
+    return { height: parseFloat(style.height), background: style.backgroundColor, drag: style.webkitAppRegion }
+  })
+  assert.equal(band.height, 48, '标题栏带必须是 grid 第一行并占满安全区高度')
+  assert.equal(band.background, 'rgb(243, 243, 243)', '标题栏带必须与窄轨同色，顶栏+窄轨构成一整块 frame')
+  assert.equal(band.drag, 'drag', '标题栏带必须保持窗口拖动区')
+  // 左右上角圆角落在 frame 内部：导航列左上 16px、主面板右上 16px；主面板左上与导航列直角拼接。
+  const corners = await page.evaluate(() => {
+    const nav = getComputedStyle(document.querySelector('.dcu-settings-nav'))
+    const main = getComputedStyle(document.querySelector('.dcu-settings-main'))
+    return { navTL: nav.borderTopLeftRadius, mainTR: main.borderTopRightRadius, mainTL: main.borderTopLeftRadius, shadow: main.boxShadow }
+  })
+  assert.equal(corners.navTL, '16px', '导航列左上角必须是 16px 圆角（首帧起就可见，不再被标题栏盖掉）')
+  assert.equal(corners.mainTR, '16px', '主面板右上角必须是 16px 圆角')
+  assert.equal(corners.mainTL, '0px', '主面板左上角必须与导航列直角拼接，不得 carve 出缝')
+  assert.equal(corners.shadow, 'rgb(243, 243, 243) 1px 0px 0px 0px inset', '导航列与主面板的交界必须是 1px frame 色直线，不得用模糊投影（会叠出 #D8D8D8 竖缝）')
   await page.locator('html').evaluate(element => { element.setAttribute('data-fullscreen', '') })
   assert.equal(await top(), 18, 'macOS 全屏时不得额外留标题栏空白')
   await page.locator('html').evaluate(element => { element.removeAttribute('data-fullscreen'); element.setAttribute('data-platform', 'win32'); element.setAttribute('data-windows-titlebar', '') })
-  assert.equal(await top(), 48, 'Windows 标题栏下返回按钮必须让出原生窗口按钮')
+  assert.equal(await top(), 58, 'Windows 标题栏下返回按钮必须让出原生窗口按钮')
   await page.locator('html').evaluate(element => { element.removeAttribute('data-windows-titlebar') })
   assert.equal(await top(), 18, '没有标题栏的桌面宿主不得受安全区影响')
   await page.locator('html').evaluate(element => { element.removeAttribute('data-platform') })
   assert.equal(await top(), 18, '普通浏览器不得受安全区影响')
+
+  // 导航列折叠（data-narrow）：列宽收到 0，主面板左上角从直角过渡到 16px（与主页折叠态收尾一致）。
+  const narrow = await page.locator('.dcu-settings-page').evaluate(element => {
+    element.setAttribute('data-narrow', '')
+    const main = getComputedStyle(document.querySelector('.dcu-settings-main'))
+    const navWidth = getComputedStyle(element).gridTemplateColumns.split(' ')[1]
+    return { mainTL: main.borderTopLeftRadius, navTrack: navWidth }
+  })
+  assert.equal(narrow.navTrack, '0px', '折叠后导航列轨道必须收到 0')
+  assert.equal(narrow.mainTL, '16px', '折叠后主面板左上角必须恢复 16px 圆角（减少动态效果时立即到位）')
+  await page.locator('.dcu-settings-page').evaluate(element => element.removeAttribute('data-narrow'))
 
   const inner = page.locator('.dcu-settings-inner')
   const main = page.locator('.dcu-settings-main')
@@ -86,7 +115,7 @@ try {
   const tinyNavBottom = await tinyNav.evaluate(element => element.getBoundingClientRect().bottom)
   assert.ok(tinyLastLinkBottom <= tinyNavBottom + 0.5, '极矮窗口滚动到底后最后一个设置项必须完整进入导航视口')
 
-  console.log('设置页标题栏避让、模型 Pro 响应式宽度与左栏固定头通过')
+  console.log('设置页 frame 行结构、左右上角圆角、1px frame 色分界线、折叠圆角过渡与标题栏避让、模型 Pro 响应式宽度与左栏固定头通过')
 } finally {
   await browser.close()
 }

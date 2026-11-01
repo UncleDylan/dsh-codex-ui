@@ -29,7 +29,7 @@ export function readSlotEntries(slots: SlotOccupancySource | undefined, name: Co
   } catch (error) {
     if (!reportedSlotErrors.has(slots)) {
       reportedSlotErrors.add(slots)
-      console.warn('[michengai-codex-ui] 无法读取配套插件插槽。', error)
+      console.warn('[uncledylan-codex-ui] 无法读取配套插件插槽。', error)
     }
     return []
   }

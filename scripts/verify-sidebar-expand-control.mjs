@@ -21,7 +21,7 @@ try {
   const page = await browser.newPage()
   await page.emulateMedia({ reducedMotion: 'reduce' })
   for (const platform of ['web', 'windows', 'darwin']) {
-    await page.setContent('<style>html,body{height:100%;margin:0}html{--dsh-windows-titlebar-height:40px}</style><div id="frame" class="' + classOf('frame') + '" style="grid-template-columns:320px minmax(0px, 1fr) minmax(0px, 180px)"><div class="' + classOf('sidebarCol') + '"><aside class="dcu-root dcu-compact"><div class="dcu-compact-shell"><button class="dcu-icon" aria-label="展开侧边栏">☰</button><nav class="dcu-compact-nav"><button class="dcu-icon" aria-label="新建任务">+</button><button class="dcu-icon" aria-label="搜索会话">⌕</button><button class="dcu-icon" aria-label="设置">⚙</button></nav></div></aside></div><main class="' + classOf('centerCol') + '">Conversation</main><div class="' + classOf('rightbarCol') + '"></div></div>')
+    await page.setContent('<style>html,body{height:100%;margin:0}html{--dsh-windows-titlebar-height:40px}</style><div id="frame" class="' + classOf('frame') + '" style="grid-template-columns:320px minmax(0px, 1fr) minmax(0px, 180px)"><div class="' + classOf('sidebarCol') + '"><aside class="dcu-root dcu-compact"><div class="dcu-rail"><button class="dcu-icon" aria-label="展开侧边栏">☰</button><button class="dcu-icon" aria-label="新建任务">+</button><button class="dcu-icon" aria-label="任务看板">▤</button><button class="dcu-icon" aria-label="插件">⚡</button><button class="dcu-icon" aria-label="扩展管理">…</button><div class="dcu-rail-divider" role="separator"></div><div class="dcu-rail-spacer"></div><div class="dcu-settings-seat"><button data-dcu-settings-trigger aria-label="设置">⚙</button></div></div></aside></div><main class="' + classOf('centerCol') + '">Conversation</main><div class="' + classOf('rightbarCol') + '"></div></div>')
     await page.addStyleTag({content:css + stylesheet})
     await page.addStyleTag({content:captionStyle})
     await page.evaluate(() => {
@@ -51,7 +51,7 @@ try {
       }
     })
     await page.evaluate(async () => { for(let i=0;i<4;i++) await new Promise(requestAnimationFrame) })
-    assert.equal(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('frame')).gridTemplateColumns)),56,platform)
+    assert.equal(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('frame')).gridTemplateColumns)),48,platform)
     assert.equal(await page.evaluate(() => document.getElementById('frame').style.getPropertyValue('--dcu-sidebar-expanded-width')),'360px')
     const caption = page.getByRole('button', {name:'后退',exact:true})
     assert.equal(await caption.isVisible(),platform === 'windows')
@@ -60,7 +60,7 @@ try {
       assert.ok(await caption.evaluate(el => { const r=el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.x+14,r.y+14)) }))
       assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--dsh-windows-menu-start').trim()),'84px')
     }
-    for (const name of ['展开侧边栏','新建任务','搜索会话','设置']) {
+    for (const name of ['展开侧边栏','新建任务','任务看板','插件','扩展管理','设置']) {
       const button = page.getByRole('button',{name,exact:true})
       assert.ok(await button.isVisible(),platform + ': ' + name)
       assert.ok(await button.evaluate(el => { const r=el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)) }),platform + ': rail action must be hit-testable')
@@ -79,9 +79,9 @@ try {
       frame.style.gridTemplateColumns = '0px minmax(0px, 1fr) minmax(0px, 180px)'
     })
     await page.evaluate(async () => { for(let i=0;i<4;i++) await new Promise(requestAnimationFrame) })
-    assert.equal(await page.evaluate(() => parseFloat(document.getElementById('frame').style.gridTemplateColumns)),56,platform + ': host re-render must retain rail')
+    assert.equal(await page.evaluate(() => parseFloat(document.getElementById('frame').style.gridTemplateColumns)),48,platform + ': host re-render must retain rail')
     await page.evaluate(() => window.disposeRail())
-    assert.equal(await page.evaluate(() => parseFloat(document.getElementById('frame').style.gridTemplateColumns)),platform === 'web' ? 56 : 0,platform + ': unload restores host track')
+    assert.equal(await page.evaluate(() => parseFloat(document.getElementById('frame').style.gridTemplateColumns)),platform === 'web' ? 48 : 0,platform + ': unload restores host track')
   }
-  console.log('✓ Desktop/Web 56px rail: real host CSS, actions, fullscreen, resized width and rightbar tracks')
+  console.log('✓ Desktop/Web 48px rail: real host CSS, actions, fullscreen, resized width and rightbar tracks')
 } finally { await browser.close() }

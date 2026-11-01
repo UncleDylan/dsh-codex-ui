@@ -14,8 +14,9 @@ export const HEADER_SESSION_MENU_EVENT = 'dcu-header-session-menu'
 // 窄窗时标题和页签都允许收缩；标题截断依赖宿主 .crumbs{overflow:hidden} 和
 // .crumb{text-overflow:ellipsis}，插件不重复写 overflow。控件带恒为 34px 单行。
 export const CONVERSATION_HEADER_STYLE = `
-header:has([data-dcu-inline-tabs]){box-sizing:border-box;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;min-height:var(--dcu-header-height,34px);padding-top:calc((var(--dcu-header-height,34px) - 28px)/2);padding-bottom:calc((var(--dcu-header-height,34px) - 28px)/2);border-bottom:0}
-header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]){box-sizing:border-box;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;min-height:var(--dcu-header-height,34px);padding-top:calc((var(--dcu-header-height,34px) - 28px)/2);padding-bottom:calc((var(--dcu-header-height,34px) - 28px)/2);border-bottom:0}
+/* 页签控件高 30px，是顶栏最高子项：上下各留 8px，顶栏正好 46px（Codex --height-toolbar）。 */
+header:has([data-dcu-inline-tabs]){box-sizing:border-box;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;min-height:var(--dcu-header-height,46px);padding-top:calc((var(--dcu-header-height,46px) - 30px)/2);padding-bottom:calc((var(--dcu-header-height,46px) - 30px)/2);border-bottom:0}
+header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]){box-sizing:border-box;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;min-height:var(--dcu-header-height,46px);padding-top:calc((var(--dcu-header-height,46px) - 28px)/2);padding-bottom:calc((var(--dcu-header-height,46px) - 28px)/2);border-bottom:0}
 /* titleRow 被摊平后不再生成盒子，宿主写在上面的窗口安全区内边距会整体丢失：
    macOS 折叠时顶栏内容会滑到红绿灯和 shell.leading 的打开/新建按钮下面。
    这里把等价留白补到 header 上，并用运行时窄轨宽度换算回同一绝对位置。 */
@@ -26,14 +27,18 @@ header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]):after{disp
 header:has([data-dcu-inline-tabs]) [class*="titleRow"],header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]) [class*="titleRow"],header:has([data-dcu-inline-tabs]) [class*="titleCluster"],header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]) [class*="titleCluster"]{display:contents}
 header:has([data-dcu-inline-tabs]) [class*="crumbs"],header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]) [class*="crumbs"]{order:1;flex:0 999 auto;min-width:24px}
 header:has([data-dcu-inline-tabs]) [class*="crumbSeg"],header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]) [class*="crumbSeg"]{flex:none}
+/* Codex 顶栏只保留当前会话标题：项目前缀段与分隔符隐藏，段结构保留以便宿主交互逻辑不变。 */
+header [class*="crumbs"]>[class*="crumbSeg"]:not(:has([class*="crumbCurrent"])){display:none}
+header [class*="crumbs"] [class*="crumbSep"]{display:none}
 header:has([data-dcu-inline-tabs]) [class*="headerActions"],header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]) [class*="headerActions"]{order:2;flex:none}
 header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]) [class*="headerActions"]{margin-right:auto}
-header [data-dcu-inline-tabs]{box-sizing:border-box;order:3;flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:0;margin:0 0 0 auto;padding:0;height:28px;position:relative;z-index:1;overflow:hidden;border:1px solid var(--dsw-alias-border-subtle,rgba(255,255,255,.12));border-radius:8px;background:var(--dsw-alias-background-secondary,rgba(255,255,255,.025))}
+header [data-dcu-inline-tabs]{box-sizing:border-box;order:3;flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:0;margin:0 0 0 auto;padding:2px;height:30px;position:relative;z-index:1;overflow:hidden;border:0;border-radius:9px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#0d0d0d) 5%,transparent)}
 header:has([data-dcu-inline-tabs]) [class*="headerUtilities"]{order:4;flex:none}
 header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]) [class*="headerUtilities"]{order:4;flex:none}
 /* 新版角落插槽被 display:contents 摊平后，需要独立排序并撤销嵌套布局的边距补偿。 */
 header:has([data-dcu-inline-tabs]) [data-conversation-header-corner],header:not(:has([data-dcu-inline-tabs])):has([class*="crumbCurrent"]) [data-conversation-header-corner]{order:5;flex:none;margin-left:0;margin-right:0}
-header [data-dcu-tab-slider]{position:absolute;left:0;top:0;height:26px;border-radius:7px;background:color-mix(in srgb,var(--dsw-alias-button-info-fill,#4c8dff) 18%,transparent);pointer-events:none;z-index:0;opacity:0;transform:translateX(0);width:0;transition:transform 240ms cubic-bezier(.16,1,.3,1),width 240ms cubic-bezier(.16,1,.3,1),opacity 160ms ease}
+header [data-dcu-tab-slider]{position:absolute;left:0;top:2px;height:26px;border-radius:7px;background:var(--dsw-alias-bg-layer-2,#fff);box-shadow:0 0 0 .5px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.08);pointer-events:none;z-index:0;opacity:0;transform:translateX(0);width:0;transition:transform 240ms cubic-bezier(.16,1,.3,1),width 240ms cubic-bezier(.16,1,.3,1),opacity 160ms ease}
+body[data-ds-dark-theme] header [data-dcu-tab-slider]{background:#383838;box-shadow:0 0 0 .5px rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.3)}
 /* 顶栏统一使用 34px 控件带：与宿主扩展常用的 top:3px + 28px 图标按钮同心。
    better-sidebar 0.18.0 收起时会把开关组改到 14px（按官方 padding-top:12px 算），
    这里只在紧凑顶栏存在时扣回 3px，不搬 DOM、不跟展开/收起跳动。 */
@@ -42,18 +47,21 @@ body[data-dsh-sidebar-collapsed][data-dsh-title-bar-compat]:has([data-dcu-inline
 body[data-dsh-sidebar-collapsed]:has([class*="crumbCurrent"]) [data-dsh-toggle-cluster]{top:calc(3px + env(safe-area-inset-top))}
 body[data-dsh-sidebar-collapsed][data-dsh-title-bar-compat]:has([class*="crumbCurrent"]) [data-dsh-toggle-cluster]{top:calc(var(--dsh-title-bar-strip, 40px) + 3px)}
 header [data-dcu-inline-tabs] [role=tab]{box-sizing:border-box;position:relative;z-index:1;height:26px;padding:3px 10px;margin:0;line-height:20px;color:var(--dsw-alias-label-tertiary);border:0;box-shadow:none;background:transparent;font-size:13px;white-space:nowrap}
-header [data-dcu-inline-tabs] [role=tab][aria-selected=true],header [data-dcu-inline-tabs] [role=tab][data-state=active]{color:var(--dsw-alias-button-info-fill,#4c8dff);font-weight:500}
-header [data-dcu-inline-tabs] [role=tab]+[role=tab]{border-left:1px solid var(--dsw-alias-border-subtle,rgba(255,255,255,.08))}
+header [data-dcu-inline-tabs] [role=tab][aria-selected=true],header [data-dcu-inline-tabs] [role=tab][data-state=active]{color:var(--dsw-alias-label-primary,currentColor);font-weight:500}
 header [data-dcu-inline-tabs] [role=tab]:after,header [data-dcu-inline-tabs] [role=tab]:before{display:none!important;content:none!important;background:transparent!important;height:0!important}
 header [data-dcu-inline-tabs] [role=tab]:focus-visible{outline:2px solid var(--dsw-alias-button-info-fill,#4c8dff);outline-offset:-2px}
+/* 标题段强制居中排版：文件夹/···按钮与右侧顶栏图标共用同一垂直中线，不吃行内基线偏移。 */
+header [class*="crumbSeg"]:has([class*="crumbCurrent"]){display:inline-flex;align-items:center}
 header [data-dcu-title-folder],header [data-dcu-title-more]{appearance:none;border:0;background:transparent;color:var(--dsw-alias-label-tertiary,currentColor);display:inline-grid;place-items:center;padding:0;cursor:pointer;border-radius:4px}
-header [data-dcu-title-folder]{width:16px;height:20px}
+/* 文件夹与 ··· 同为 20px 命中区、18px Tabler 图标：与右侧顶栏图标族同规格、同一中线。 */
+header [data-dcu-title-folder]{width:20px;height:20px}
 header [data-dcu-title-more]{width:20px;height:20px}
 header [data-dcu-title-folder]:hover,header [data-dcu-title-more]:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.08));color:var(--dsw-alias-label-primary,currentColor)}
 header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:block}
 `
 
-const FOLDER_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true"><path fill="currentColor" transform="translate(1.5 2.429)" d="M5.05582 0.518756L4.50669 0.86654L5.05582 0.518756ZM13 9.4837L13.65 9.4837L13.65 3.53962L13 3.53962L12.35 3.53962L12.35 9.4837L13 9.4837ZM11.3264 1.86603L11.3264 1.21603L6.52313 1.21603L6.52313 1.86603L6.52313 2.51603L11.3264 2.51603L11.3264 1.86603ZM5.58054 1.34727L6.12968 0.999489L5.60495 0.170972L5.05582 0.518756L4.50669 0.86654L5.03141 1.69506L5.58054 1.34727ZM4.11323 1.23058e-13L4.11323 -0.65L1.67359 -0.65L1.67359 5.00699e-14L1.67359 0.65L4.11323 0.65L4.11323 1.23058e-13ZM0 1.67359L-0.65 1.67359L-0.65 9.4837L0 9.4837L0.65 9.4837L0.65 1.67359L0 1.67359ZM11.3264 11.1573L11.3264 10.5073L1.67359 10.5073L1.67359 11.1573L1.67359 11.8073L11.3264 11.8073L11.3264 11.1573ZM0 9.4837L-0.65 9.4837C-0.65 10.767 0.390308 11.8073 1.67359 11.8073L1.67359 11.1573L1.67359 10.5073C1.10828 10.5073 0.65 10.049 0.65 9.4837L0 9.4837ZM1.67359 5.00699e-14L1.67359 -0.65C0.390307 -0.65 -0.65 0.390309 -0.65 1.67359L0 1.67359L0.65 1.67359C0.65 1.10828 1.10828 0.65 1.67359 0.65L1.67359 5.00699e-14ZM5.05582 0.518756L5.60495 0.170972C5.28121 -0.340193 4.71829 -0.65 4.11323 -0.65L4.11323 1.23058e-13L4.11323 0.65C4.27282 0.65 4.4213 0.731715 4.50669 0.86654L5.05582 0.518756ZM6.52313 1.86603L6.52313 1.21603C6.36354 1.21603 6.21507 1.13431 6.12968 0.999489L5.58054 1.34727L5.03141 1.69506C5.35515 2.20622 5.91808 2.51603 6.52313 2.51603L6.52313 1.86603ZM13 3.53962L13.65 3.53962C13.65 2.25634 12.6097 1.21603 11.3264 1.21603L11.3264 1.86603L11.3264 2.51603C11.8917 2.51603 12.35 2.97431 12.35 3.53962L13 3.53962ZM13 9.4837L12.35 9.4837C12.35 10.049 11.8917 10.5073 11.3264 10.5073L11.3264 11.1573L11.3264 11.8073C12.6097 11.8073 13.65 10.767 13.65 9.4837L13 9.4837Z"/></svg>'
+// Tabler folder：与顶栏图标族同规格（24 网格、stroke 2，按 18px 渲染后描边≈1.5px）。
+const FOLDER_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"/></svg>'
 const MORE_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="4" cy="8" r="1.15" fill="currentColor"/><circle cx="8" cy="8" r="1.15" fill="currentColor"/><circle cx="12" cy="8" r="1.15" fill="currentColor"/></svg>'
 
 export function findConversationTablist(root: ParentNode): HTMLElement | undefined {

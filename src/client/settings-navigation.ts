@@ -95,7 +95,7 @@ export function openSettingsSection(root: HTMLElement | null, label: string | re
   const timeout = window.setTimeout(() => {
     if (select()) return
     cleanup()
-    console.warn(`[michengai-codex-ui] 未找到设置分区：${labels.join(' / ')}`)
+    console.warn(`[uncledylan-codex-ui] 未找到设置分区：${labels.join(' / ')}`)
     onMissing?.()
   }, SETTINGS_NAVIGATION_TIMEOUT_MS)
   observer.observe(document.body, { childList: true, subtree: true })

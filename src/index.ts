@@ -363,5 +363,5 @@ export function apply(ctx: Context): void {
       disposePreferences()
       disposeSessionMove()
     }
-  }, 'michengai-codex-ui: catalogs')
+  }, 'uncledylan-codex-ui: catalogs')
 }

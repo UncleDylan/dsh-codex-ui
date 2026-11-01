@@ -88,7 +88,7 @@ try {
         cornerRight: boxes[4].right,
       }
     })
-    assert.equal(bar.height, 34, `${width}px：紧凑顶栏不得被长标题撑成两行`)
+    assert.equal(bar.height, 46, `${width}px：紧凑顶栏不得被长标题撑成两行`)
     assert.ok(bar.rowSpread < 20, `${width}px：顶栏控件必须同处一行（垂直散布 ${bar.rowSpread.toFixed(1)}px）`)
     assert.ok(bar.actionsLeft - bar.crumbsRight <= 11, `${width}px：操作区必须紧贴标题，不得被顶到中间`)
     assert.ok(bar.cornerRight > bar.utilitiesRight && bar.utilitiesRight > bar.tabsLeft && bar.tabsLeft >= bar.actionsRight, `${width}px：页签、扩展区与右栏必须按序留在右侧`)
@@ -126,7 +126,7 @@ try {
   })
   assert.ok(chrome.folderLeft >= chrome.leadingRight, `macOS 折叠：文件夹按钮压住窗口插槽（${chrome.folderLeft} < ${chrome.leadingRight}）`)
   assert.ok(chrome.titleLeft >= chrome.leadingRight, `macOS 折叠：标题压住窗口插槽（${chrome.titleLeft} < ${chrome.leadingRight}）`)
-  assert.equal(chrome.height, 34, 'macOS 折叠：补回安全区后顶栏仍必须保持 34px 单行')
+  assert.equal(chrome.height, 46, 'macOS 折叠：补回安全区后顶栏仍必须保持 46px 单行')
   // 三档状态共用同一公式：折叠全量让位、全屏扣减后仍避开插槽、展开/无变量退回宿主原生 20px。
   const paddingFor = (clearance, rail) => page.evaluate(({ clearance, rail }) => {
     const frame = document.querySelector('.frame')
@@ -137,7 +137,7 @@ try {
     return getComputedStyle(document.querySelector('header')).paddingLeft
   }, { clearance, rail })
   assert.equal(await paddingFor(160, railPx), `${160 - railPx}px`, `折叠需扣掉 ${railPx}px 窄轨`)
-  assert.equal(await paddingFor(84, railPx), `${84 - railPx}px`, '全屏安全区 84px 同样要扣掉窄轨')
+  assert.equal(await paddingFor(104, railPx), `${104 - railPx}px`, '全屏安全区 104px 同样要扣掉窄轨')
   assert.equal(await paddingFor(160, null), '160px', '没有窄轨时顶栏必须让满 160px，不能按 56px 扣')
   assert.equal(await paddingFor(null, 0), '20px', '展开态必须保持宿主原生的 20px 左内边距')
   assert.equal(await paddingFor(null, null), '20px', 'Windows/Web 没有安全区时必须保持 20px')
@@ -152,7 +152,7 @@ try {
     })),
     { viewportWidth: 560, centerWidth: 404, actionCount: 1, expectFullTabs: false },
     { viewportWidth: 560, centerWidth: 400, actionCount: 2, expectFullTabs: false },
-    { viewportWidth: 560, centerWidth: 504, actionCount: 2, expectFullTabs: false },
+    { viewportWidth: 560, centerWidth: 488, actionCount: 2, expectFullTabs: false },
     { viewportWidth: 640, centerWidth: 640 - railPx, actionCount: 2, expectFullTabs: false },
     { viewportWidth: 720, centerWidth: 720 - railPx, actionCount: 2, expectFullTabs: true },
   ]

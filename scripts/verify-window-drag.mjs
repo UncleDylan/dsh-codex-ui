@@ -26,7 +26,7 @@ try {
     <div id="root"><aside class="dcu-root" style="width:240px;height:700px"><header class="dcu-head"><button>侧栏按钮</button></header></aside></div>
     <div data-windows-menu><button>应用</button></div>
     <div class="dcu-desktop-navigation"><button aria-label="后退">‹</button><button aria-label="前进">›</button></div>
-    <div class="dcu-settings-page"><nav class="dcu-settings-nav"><button class="dcu-settings-back">返回</button><input aria-label="搜索"></nav></div>`)
+    <div class="dcu-settings-page"><div class="dcu-desktop-navigation" data-collapse=""><button>‹</button><button>›</button><button>◧</button></div><nav class="dcu-settings-nav"><button class="dcu-settings-back">返回</button><input aria-label="搜索"></nav></div>`)
   const setPlatform = (platform, { fullscreen = false, titlebar = false } = {}) => page.evaluate(({ platform, fullscreen, titlebar }) => {
     const html = document.documentElement
     if (platform === null) delete html.dataset.platform
@@ -34,41 +34,50 @@ try {
     html.toggleAttribute('data-windows-titlebar', titlebar)
     html.toggleAttribute('data-fullscreen', fullscreen)
   }, { platform, fullscreen, titlebar })
-  const read = selector => page.locator(selector).evaluate(element => ({
+  const read = (selector, pseudo) => page.locator(selector).evaluate((element, pseudo) => ({
     region: getComputedStyle(element).getPropertyValue('app-region'),
-    strip: getComputedStyle(element, '::after').getPropertyValue('app-region'),
-    stripBg: getComputedStyle(element, '::after').backgroundColor,
-    stripWidth: getComputedStyle(element, '::after').width,
-    height: getComputedStyle(element, '::after').height,
+    strip: getComputedStyle(element, pseudo).getPropertyValue('app-region'),
+    stripBg: getComputedStyle(element, pseudo).backgroundColor,
+    stripWidth: getComputedStyle(element, pseudo).width,
+    height: getComputedStyle(element, pseudo).height,
     button: getComputedStyle(element.querySelector('button')).getPropertyValue('app-region'),
-  }))
+  }), pseudo)
   const backTop = () => page.locator('.dcu-settings-back').evaluate(element => element.getBoundingClientRect().top)
 
-  // macOS：侧栏标题行与设置页顶部安全区都必须可拖，按钮保持可交互。
+  // macOS：侧栏标题行与设置页 frame 带都必须可拖，按钮保持可交互。
+  // 设置页的拖动带是 grid 第一行（::before），与窄轨同色构成整块 frame；侧栏仍用宿主 ::after 规则。
   for (const fullscreen of [false, true]) {
     await setPlatform('darwin', { fullscreen })
-    for (const selector of ['.dcu-root', '.dcu-settings-page']) {
-      const state = await read(selector)
-      assert.notEqual(state.region, 'no-drag', `${selector} 不得形成整层不可拖动区域`)
-      if (!fullscreen) {
-        assert.equal(state.strip, 'drag', `${selector} 顶部安全区必须允许窗口拖动`)
-        assert.equal(state.height, '48px')
-        assert.equal(state.stripBg, 'rgba(0, 0, 0, 0)', 'macOS 拖动条不得额外铺色')
-      } else assert.notEqual(state.strip, 'drag', '全屏不得留下额外拖动条')
-      assert.equal(state.button, 'no-drag', '按钮必须继续可交互')
+    const sidebarState = await read('.dcu-root', '::after')
+    assert.notEqual(sidebarState.region, 'no-drag', '.dcu-root 不得形成整层不可拖动区域')
+    if (!fullscreen) {
+      assert.equal(sidebarState.strip, 'drag', '.dcu-root 顶部安全区必须允许窗口拖动')
+      assert.equal(sidebarState.height, '48px')
+    } else assert.notEqual(sidebarState.strip, 'drag', '全屏不得留下额外拖动条')
+    assert.equal(sidebarState.button, 'no-drag', '按钮必须继续可交互')
+    const state = await read('.dcu-settings-page', '::before')
+    assert.notEqual(state.region, 'no-drag', '.dcu-settings-page 不得形成整层不可拖动区域')
+    if (!fullscreen) {
+      assert.equal(state.strip, 'drag', '设置页 frame 带必须允许窗口拖动')
+      assert.equal(state.height, '48px', 'frame 带必须占满标题栏安全区高度')
+      assert.equal(state.stripBg, 'rgb(243, 243, 243)', 'frame 带必须与窄轨同色，顶栏+窄轨一整块背景')
+    } else {
+      assert.notEqual(state.strip, 'drag', '全屏不得留下额外拖动条')
+      assert.equal(state.height, '0px', '全屏 frame 带必须收起')
     }
+    assert.equal(state.button, 'no-drag', '按钮必须继续可交互')
   }
 
   // Windows：宿主把标题栏拖动条画在 frame 顶部，全屏设置页会整层盖住它，插件必须自己预留并声明。
   for (const fullscreen of [false, true]) {
     await setPlatform('win32', { fullscreen, titlebar: true })
-    const state = await read('.dcu-settings-page')
+    const state = await read('.dcu-settings-page', '::before')
     if (!fullscreen) {
       assert.equal(state.strip, 'drag', 'Windows 标题栏安全区必须允许窗口拖动')
       assert.equal(state.height, '40px', 'Windows 拖动条高度必须对齐宿主标题栏')
-      assert.equal(state.stripBg, 'rgb(230, 233, 239)', 'Windows 标题栏带必须用宿主 --dsw-specific-sidebar-fill 贯通铺色')
+      assert.equal(state.stripBg, 'rgb(243, 243, 243)', 'Windows 标题栏带必须跟随插件覆盖后的 --dsw-specific-sidebar-fill（Codex 轨道 #f3f3f3）贯通铺色')
       assert.equal(state.stripWidth, await page.evaluate(() => `${innerWidth}px`), '标题栏带必须贯通整个窗口宽度')
-      assert.equal(await backTop(), 48, 'Windows 下返回按钮必须让出原生窗口按钮所在的标题栏')
+      assert.equal(await backTop(), 58, 'Windows 下返回按钮必须让出原生窗口按钮所在的标题栏')
       // 设置页不展示会话历史前进/后退箭头，Desktop 菜单前移到 12px 对齐，且不压住返回按钮。
       const menu = await page.locator('[data-windows-menu]').evaluate(el => ({
         display: getComputedStyle(el).display,
@@ -76,7 +85,7 @@ try {
         start: getComputedStyle(document.documentElement).getPropertyValue('--dsh-windows-menu-start'),
       }))
       assert.equal(menu.display, 'block', '窗口态下 Desktop 菜单必须保持可见')
-      assert.equal(menu.start, '12px', '设置页下 Desktop 菜单必须从 12px 起排')
+      assert.equal(menu.start, '120px', '设置页下 Desktop 菜单必须在 ←/→/折叠三键之后起排')
       assert.ok(menu.bottom <= await backTop(), 'Desktop 菜单底部不得压住返回应用按钮')
     } else {
       assert.notEqual(state.strip, 'drag', 'Windows 全屏不得留下额外拖动条')
@@ -88,7 +97,7 @@ try {
   // 没有标题栏的 Web 宿主与普通浏览器不得引入拖动条，也不得抬高设置导航。
   for (const platform of ['win32', null]) {
     await setPlatform(platform, { titlebar: false })
-    assert.notEqual((await read('.dcu-settings-page')).strip, 'drag', '无标题栏宿主不应引入拖动条')
+    assert.notEqual((await read('.dcu-settings-page', '::before')).strip, 'drag', '无标题栏宿主不应引入拖动条')
     assert.equal(await backTop(), 18, '无标题栏宿主不得抬高设置导航')
   }
   assert.match(sidebar, /<header className="dcu-head" data-window-drag/, '侧栏标题行应保留官方拖动标记')

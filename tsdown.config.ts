@@ -1,4 +1,4 @@
-const packageId = '@michengai/dsh-codex-ui'
+const packageId = '@uncledylan/dsh-codex-ui'
 const buildMode = process.env.NODE_ENV ?? 'production'
 
 export default [

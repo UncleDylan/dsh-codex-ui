@@ -22,10 +22,10 @@
 # dsh-codex-ui：保留官方侧栏，覆盖撤销后自动回退。
 # 标题提供方的回退单独管理。
 - insert:
-    - id: michengai-codex-ui-session-title
-      name: '@michengai/dsh-codex-ui/session-title'
+    - id: uncledylan-codex-ui-session-title
+      name: '@uncledylan/dsh-codex-ui/session-title'
     - id: codex-ui
-      name: '@michengai/dsh-codex-ui'
+      name: '@uncledylan/dsh-codex-ui'
 
 # dsh-skills-manager：提供技能管理设置页。
 - insert:

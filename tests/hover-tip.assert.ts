@@ -57,10 +57,10 @@ const sidebarDom = new JSDOM('<div id="frame" style="grid-template-columns: 360p
 const sidebarFrame = sidebarDom.window.document.getElementById('frame') as HTMLElement
 const sidebarHandle = sidebarFrame.querySelector<HTMLElement>('[data-side="sidebar"]')
 assert.equal(applySlimSidebar(sidebarFrame), true)
-assert.equal(sidebarFrame.style.gridTemplateColumns, '240px minmax(0px, 1fr) 0px')
+assert.equal(sidebarFrame.style.gridTemplateColumns, '340px minmax(0px, 1fr) 0px')
 assert.equal(sidebarFrame.hasAttribute('data-dcu-codex-sidebar-initialized'), true)
 assert.equal(sidebarFrame.style.getPropertyValue('--dcu-sidebar-rail-width'), '0px', '展开态不得让顶栏额外让出窗口安全区')
-assert.equal(sidebarHandle?.style.left, '240px')
+assert.equal(sidebarHandle?.style.left, '340px')
 assert.equal(applySidebarWidth(sidebarFrame, 241), true)
 assert.equal(sidebarFrame.style.gridTemplateColumns, '241px minmax(0px, 1fr) 0px')
 sidebarFrame.style.gridTemplateColumns = '320px minmax(0px, 1fr) 0px'
@@ -70,8 +70,8 @@ assert.equal(sidebarFrame.style.gridTemplateColumns, '241px minmax(0px, 1fr) 0px
 const collapsedDom = new JSDOM('<div id="frame" data-sidebar-collapsed style="grid-template-columns: 0px minmax(0px, 1fr) 0px"><div data-side="sidebar"></div></div>')
 const collapsedFrame = collapsedDom.window.document.getElementById('frame') as HTMLElement
 assert.equal(applySlimSidebar(collapsedFrame), true)
-assert.equal(collapsedFrame.style.gridTemplateColumns, '56px minmax(0px, 1fr) 0px')
-assert.equal(collapsedFrame.style.getPropertyValue('--dcu-sidebar-rail-width'), '56px', '折叠窄轨必须告诉顶栏扣掉 56px')
+assert.equal(collapsedFrame.style.gridTemplateColumns, '48px minmax(0px, 1fr) 0px')
+assert.equal(collapsedFrame.style.getPropertyValue('--dcu-sidebar-rail-width'), '48px', '折叠窄轨必须告诉顶栏扣掉 48px')
 const styleMutations: (string | null)[] = []
 const styleObserver = new collapsedDom.window.MutationObserver(records => { for (const record of records) styleMutations.push(record.attributeName) })
 styleObserver.observe(collapsedFrame, { attributes: true, attributeFilter: ['style'] })
@@ -82,8 +82,8 @@ styleObserver.disconnect()
 
 const hostFrame = new JSDOM('<div id="host" style="grid-template-columns: 280px minmax(0px, 1fr) minmax(0px, 480px)"><div data-side="sidebar"></div></div>').window.document.getElementById('host') as HTMLElement
 assert.equal(applySlimSidebar(hostFrame), true, '0.1.7 默认 280px 列必须能被收成内容宽度')
-assert.equal(hostFrame.style.gridTemplateColumns, '240px minmax(0px, 1fr) minmax(0px, 480px)', '收窄侧栏时必须保留 0.1.7 右栏轨道')
-assert.equal(hostFrame.style.getPropertyValue('--dcu-sidebar-expanded-width'), '240px')
+assert.equal(hostFrame.style.gridTemplateColumns, '340px minmax(0px, 1fr) minmax(0px, 480px)', '收窄侧栏时必须保留 0.1.7 右栏轨道')
+assert.equal(hostFrame.style.getPropertyValue('--dcu-sidebar-expanded-width'), '340px')
 restoreHostSidebar(hostFrame)
 assert.equal(hostFrame.style.gridTemplateColumns, '280px minmax(0px, 1fr) minmax(0px, 480px)', '没有快照时卸载必须退回官方默认 280px')
 assert.equal(hostFrame.hasAttribute('data-dcu-codex-sidebar-initialized'), false)
@@ -98,20 +98,20 @@ restoreDom.window.requestAnimationFrame = (callback: FrameRequestCallback) => { 
 restoreDom.window.cancelAnimationFrame = () => {}
 const disposeSlim = observeSlimSidebar()
 const restoreFrame = restoreDom.window.document.getElementById('frame') as HTMLElement
-assert.equal(restoreFrame.style.gridTemplateColumns, '240px minmax(0px, 1fr) 0px')
+assert.equal(restoreFrame.style.gridTemplateColumns, '340px minmax(0px, 1fr) 0px')
 disposeSlim()
 assert.equal(restoreFrame.style.gridTemplateColumns, '320px minmax(0px, 1fr) 0px', '卸载必须恢复插件改写前的宿主列宽')
 assert.equal(restoreFrame.querySelector<HTMLElement>('[data-side="sidebar"]')?.style.left, '320px')
 Object.assign(globalThis, { window: previousWindow, document: previousDocument })
 
 // 宿主把网格改写成插件解析不了的格式时必须撤回窄轨宽度，否则顶栏会少让位而重新压住窗口插槽按钮。
-const bailDom = new JSDOM('<body><div id="frame" data-sidebar-collapsed style="grid-template-columns: 56px minmax(0px, 1fr) 0px"><div data-side="sidebar"></div></div></body>', { pretendToBeVisual: true })
+const bailDom = new JSDOM('<body><div id="frame" data-sidebar-collapsed style="grid-template-columns: 48px minmax(0px, 1fr) 0px"><div data-side="sidebar"></div></div></body>', { pretendToBeVisual: true })
 Object.assign(globalThis, { window: bailDom.window, document: bailDom.window.document, MutationObserver: bailDom.window.MutationObserver })
 bailDom.window.requestAnimationFrame = (callback: FrameRequestCallback) => { callback(0); return 1 }
 bailDom.window.cancelAnimationFrame = () => {}
 const disposeBail = observeSlimSidebar()
 const bailFrame = bailDom.window.document.getElementById('frame') as HTMLElement
-assert.equal(bailFrame.style.getPropertyValue('--dcu-sidebar-rail-width'), '56px')
+assert.equal(bailFrame.style.getPropertyValue('--dcu-sidebar-rail-width'), '48px')
 bailFrame.style.gridTemplateColumns = '0 clamp(240px, 30vw, 320px) minmax(0px, 480px)'
 await Promise.resolve()
 assert.equal(bailFrame.style.getPropertyValue('--dcu-sidebar-rail-width'), '0px', '宿主网格不可解析时必须撤回窄轨宽度，退回完整窗口安全区')

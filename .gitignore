@@ -3,3 +3,10 @@ node_modules
 .codegraph/
 *.tgz
 docs/
+
+# dev artifacts
+/out/
+/tmp/
+/.sandbox-tmp/
+/.dtclaw-srt/
+/.zcode/

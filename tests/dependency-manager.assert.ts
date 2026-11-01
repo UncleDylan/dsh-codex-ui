@@ -116,8 +116,8 @@ if (managerModule.removeUnmountedPackagePath !== undefined) {
   await rm(staleRoot, { recursive: true, force: true })
 }
 
-await runDshPlugin(['add', '@michengai/dsh-codex-ui@0.2.92'], desktopRuntime, 1_000)
-assert.deepEqual(desktopPluginArgs, ['add', '@michengai/dsh-codex-ui@0.2.92'])
+await runDshPlugin(['add', '@uncledylan/dsh-codex-ui@0.2.92'], desktopRuntime, 1_000)
+assert.deepEqual(desktopPluginArgs, ['add', '@uncledylan/dsh-codex-ui@0.2.92'])
 assert.equal(desktopPluginCwd, desktopProfileDir, 'Desktop 安装必须以当前 profile 作为调用目录')
 
 const statusRoot = await mkdtemp(join(tmpdir(), 'dcu-desktop-status-'))
@@ -130,10 +130,10 @@ const writeManifest = async (root: string, packageName: string, version: string)
 }
 await mkdir(statusProfile, { recursive: true })
 await writeFile(join(statusProfile, 'package.json'), JSON.stringify({
-  dsh: { profile: { bundles: ['@michengai/dsh-codex-ui'] } },
-  dependencies: { '@michengai/dsh-codex-ui': '0.2.92' },
+  dsh: { profile: { bundles: ['@uncledylan/dsh-codex-ui'] } },
+  dependencies: { '@uncledylan/dsh-codex-ui': '0.2.92' },
 }), 'utf8')
-await writeManifest(statusProfile, '@michengai/dsh-codex-ui', '0.2.92')
+await writeManifest(statusProfile, '@uncledylan/dsh-codex-ui', '0.2.92')
 await writeManifest(statusRuntimeRoot, '@deepseek-ai/dsh', '0.1.2-alpha.1')
 const previousFetch = globalThis.fetch
 globalThis.fetch = async input => new Response(JSON.stringify({ version: String(input).includes('@deepseek-ai') ? '0.1.2-alpha.1' : '0.2.92' }))
@@ -164,7 +164,7 @@ try {
 const leftoverRoot = await mkdtemp(join(tmpdir(), 'dcu-leftover-im-'))
 try {
   await writeFile(join(leftoverRoot, 'package.json'), JSON.stringify({
-    dsh: { profile: { bundles: ['@michengai/dsh-codex-ui'] } },
+    dsh: { profile: { bundles: ['@uncledylan/dsh-codex-ui'] } },
     dependencies: { '@michengai/dsh-im-connect': '0.1.29' },
   }), 'utf8')
   const leftoverIm = join(leftoverRoot, 'node_modules', '@michengai', 'dsh-im-connect')
@@ -230,18 +230,18 @@ assert.equal(
 )
 
 assert.deepEqual(
-  pluginsToRemoveBeforeInstall(['@michengai/dsh-codex-suite'], '@michengai/dsh-codex-ui'),
+  pluginsToRemoveBeforeInstall(['@michengai/dsh-codex-suite'], '@uncledylan/dsh-codex-ui'),
   ['@michengai/dsh-codex-suite'],
   '单独更新子插件前必须卸掉套件，避免两套 patch',
 )
 assert.deepEqual(
-  pluginsToRemoveBeforeInstall(['@michengai/dsh-codex-ui'], '@michengai/dsh-codex-ui'),
+  pluginsToRemoveBeforeInstall(['@uncledylan/dsh-codex-ui'], '@uncledylan/dsh-codex-ui'),
   [],
   '只装子插件时无需先卸载',
 )
 assert.deepEqual(
-  resolveDshPluginTarget('@michengai/dsh-codex-ui', ['@michengai/dsh-codex-suite']),
-  '@michengai/dsh-codex-ui',
+  resolveDshPluginTarget('@uncledylan/dsh-codex-ui', ['@michengai/dsh-codex-suite']),
+  '@uncledylan/dsh-codex-ui',
   '已装套件时仍更新用户点的那个子插件',
 )
 assert.deepEqual(
@@ -260,10 +260,10 @@ assert.equal(
   '无直接声明也无 Suite 所有权时不得把残留包算作已声明',
 )
 assert.deepEqual(
-  directPackagesForInstall(['@michengai/dsh-codex-ui'], ['@michengai/dsh-codex-suite']),
+  directPackagesForInstall(['@uncledylan/dsh-codex-ui'], ['@michengai/dsh-codex-suite']),
   [
     '@michengai/dsh-archive-manager',
-    '@michengai/dsh-codex-ui',
+    '@uncledylan/dsh-codex-ui',
     '@michengai/dsh-skills-manager',
     '@michengai/dsh-agency-agents',
     '@michengai/dsh-im-connect',
@@ -272,13 +272,13 @@ assert.deepEqual(
   '更新旧 Suite 中任一成员时必须把整套成员提升为直接依赖',
 )
 assert.deepEqual(
-  directPackagesForInstall(['@michengai/dsh-codex-ui'], []),
-  ['@michengai/dsh-codex-ui'],
+  directPackagesForInstall(['@uncledylan/dsh-codex-ui'], []),
+  ['@uncledylan/dsh-codex-ui'],
   '普通独立安装不得隐式安装其他成员',
 )
 assert.deepEqual(
   updatableDependencyIds([
-    { id: 'ui', packageName: '@michengai/dsh-codex-ui', installed: true, version: '0.2.79', latestVersion: '0.2.80', updateAvailable: true },
+    { id: 'ui', packageName: '@uncledylan/dsh-codex-ui', installed: true, version: '0.2.79', latestVersion: '0.2.80', updateAvailable: true },
     { id: 'skills', packageName: '@michengai/dsh-skills-manager', installed: true, version: '0.1.24', latestVersion: '0.1.24', updateAvailable: false },
     { id: 'archive', packageName: '@michengai/dsh-archive-manager', installed: false, latestVersion: '0.1.14', updateAvailable: true },
   ]),
@@ -498,7 +498,7 @@ await rm(hostProfileRoot, { recursive: true, force: true })
 
 
 assert.equal(isOfficialRuntimePackage('@deepseek-ai/dsh'), true)
-assert.equal(isOfficialRuntimePackage('@michengai/dsh-codex-ui'), false)
+assert.equal(isOfficialRuntimePackage('@uncledylan/dsh-codex-ui'), false)
 assert.equal(newerVersion('0.1.0-rc.7', '0.1.0-rc.8'), true, '同号 rc 必须能看出可升级')
 assert.equal(newerVersion('0.1.0-rc.8', '0.1.0-rc.7'), false, '不得把更旧的 rc 当成升级')
 assert.equal(newerVersion('0.1.0-beta.1', '0.1.0-beta.2'), true, '同号 beta 必须能看出可升级')

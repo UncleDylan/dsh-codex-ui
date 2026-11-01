@@ -100,7 +100,7 @@ export function mirrorSlot(ctx: MirrorContext, source: string, target: string): 
       try {
         sync()
       } catch (error) {
-        console.warn(`[michengai-codex-ui] slot-mirror sync error on '${from}' -> '${to}':`, error)
+        console.warn(`[uncledylan-codex-ui] slot-mirror sync error on '${from}' -> '${to}':`, error)
         stop()
       }
     }

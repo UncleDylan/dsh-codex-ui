@@ -19,12 +19,12 @@ try {
     await page.setContent(`<style>html,body{height:100%;margin:0}html{--dsw-font-family:system-ui}</style>
       <div class="${classOf('frame')}" style="grid-template-columns:240px minmax(0px,1fr) 0px">
         <div class="${classOf('sidebarCol')}"><aside class="dcu-root">
+          <div class="dcu-rail"><button class="dcu-icon" aria-label="收起">☰</button><button class="dcu-icon" aria-label="新建">+</button><div class="dcu-rail-spacer"></div></div>
           <div class="dcu-expanded-shell"><header class="dcu-head">
             <button class="dcu-brand" aria-label="品牌"><svg viewBox="0 0 150 24"><text x="0" y="18">DeepSeek Harness</text></svg></button>
-            <div class="dcu-head-actions"><button class="dcu-icon" aria-label="收起">☰</button><button class="dcu-icon" aria-label="搜索">⌕</button></div>
-          </header><nav class="dcu-menu"><button>任务</button></nav><div class="dcu-workspaces">项目与会话</div></div>
-          <div class="dcu-compact-shell"><button class="dcu-icon" aria-label="展开">☰</button><nav class="dcu-compact-nav"><button class="dcu-icon">+</button></nav></div>
-          <footer class="dcu-foot"><button class="dcu-footer-link">账户与设置</button></footer>
+            <div class="dcu-head-actions"><button class="dcu-icon" aria-label="搜索">⌕</button></div>
+          </header><nav class="dcu-menu"><button>任务</button></nav><div class="dcu-workspaces">项目与会话</div>
+          <footer class="dcu-foot"><button class="dcu-footer-link">账户与设置</button></footer></div>
         </aside></div><main class="${classOf('centerCol')}">对话</main><div></div>
       </div>`)
     await page.addStyleTag({ content: css + stylesheet })
@@ -41,10 +41,11 @@ try {
             const root = document.querySelector('.dcu-root')
             root.classList.toggle('dcu-compact', mode === 'compact')
             root.classList.toggle('dcu-collapsing', mode === 'collapsing')
-            root.parentElement.parentElement.style.gridTemplateColumns = `${mode === 'expanded' ? 240 : 56}px minmax(0px,1fr) 0px`
+            root.querySelector('.dcu-rail button').setAttribute('aria-label', mode === 'expanded' ? '收起' : '展开')
+            root.parentElement.parentElement.style.gridTemplateColumns = `${mode === 'expanded' ? 240 : 48}px minmax(0px,1fr) 0px`
           }, mode)
           const control = page.getByRole('button', { name: mode === 'expanded' ? '收起' : '展开', exact: true })
-          const expectedTop = platform === 'darwin' && !fullscreen ? 51 : 3
+          const expectedTop = platform === 'darwin' && !fullscreen ? 57 : 9
           assert.equal((await control.boundingBox()).y, expectedTop, `${platform}/${fullscreen}/${mode}: 操作控件必须避让交通灯`)
           assert.ok(await control.evaluate(el => {
             const r = el.getBoundingClientRect()
@@ -69,7 +70,8 @@ try {
       document.documentElement.removeAttribute('data-fullscreen')
       document.documentElement.style.setProperty('--dsh-frame-top-clearance', '64px')
     })
-    assert.equal((await page.getByRole('button', { name: '收起', exact: true }).boundingBox()).y, 67)
+    // 顶栏控件带 46px，28px 按钮上下各 9px；安全区 64px 时按钮应落在 73px。
+    assert.equal((await page.getByRole('button', { name: '收起', exact: true }).boundingBox()).y, 73)
     await page.evaluate(() => document.documentElement.style.removeProperty('--dsh-frame-top-clearance'))
   }
   console.log('✓ Sidebar titlebar: macOS, fullscreen transitions, Web/Windows, 3 window sizes, expanded/compact/animation controls and footer bounds')
